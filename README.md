@@ -1,6 +1,6 @@
 # TSちゃん！
 
-TSちゃん(chan), the Automated Managa Translation Pipeline.
+TSちゃん(chan), the Automated Manga Translation Pipeline.
 
 ## Models
 
@@ -15,6 +15,7 @@ List of third-party resources used in this project.
 - [COO: Comic onomatopoeia dataset](https://github.com/ku21fan/COO-Comic-Onomatopoeia)
 - [Mask Dataset for: Unconstrained Text Detection in Manga: a New Dataset and Baseline](https://zenodo.org/record/4511796)
 - [OpenMantra dataset](https://github.com/mantra-inc/open-mantra-dataset)
+- [Kuzushiji-MNIST](https://github.com/rois-codh/kmnist)
 
 ## References
 
