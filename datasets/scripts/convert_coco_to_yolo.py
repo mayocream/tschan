@@ -55,7 +55,7 @@ if __name__ == '__main__':
             force_masks=False
         ).as_yolo(
             images_directory_path=f'manga109/yolo_format/images/{typ}',
-            annotations_directory_path=f'manga109/yolo_format/annotations/{typ}',
+            annotations_directory_path=f'manga109/yolo_format/labels/{typ}',
             data_yaml_path='manga109/yolo_format/manga109.yaml'
         )
 
