@@ -1,62 +1,53 @@
-import supervision as sv
+from ultralytics.data.converter import convert_coco
 import os
 import json
 import tempfile
 import glob
+import shutil
 
-# trick
-def flatten_dir_with_links(src_img_directory, src_json_directory):
+def flatten_dir_with_links(manga109_directory, annotations_directory):
     # Create the main temp directory
     main_tmp_dir = tempfile.mkdtemp()
 
-    # Create "images" and "annotations" subdirectories under the main temp directory
-    tmp_img_dir = os.path.join(main_tmp_dir, "images")
-    os.makedirs(tmp_img_dir)
-
-    tmp_json_dir = os.path.join(main_tmp_dir, "annotations")
+    # Create 'annotations' subdirectory under the main temp directory
+    tmp_json_dir = os.path.join(main_tmp_dir, 'annotations')
     os.makedirs(tmp_json_dir)
 
-    # Create soft links in the "images" temp directory to flatten the directory structure of images
-    for subdir, _, files in os.walk(src_img_directory):
-        for file in files:
-            src_path = os.path.join(subdir, file)
-            new_filename = "{}_{}".format(os.path.basename(subdir), file)
-            dest_path = os.path.join(tmp_img_dir, new_filename)
-            os.symlink(os.path.abspath(src_path), dest_path)
-
     # Read .json files from the source directory and replace paths
-    for json_file in glob.glob(os.path.join(src_json_directory, "*.json")):
+    for json_file in glob.glob(os.path.join(annotations_directory, '*.json')):
+        # Create a specific subdirectory under 'images' based on the JSON file name (without extension)
+        json_file_basename = os.path.splitext(os.path.basename(json_file))[0]
+        tmp_img_subdir = os.path.join(main_tmp_dir, 'images', json_file_basename)
+        os.makedirs(tmp_img_subdir, exist_ok=True)
+
         with open(json_file, 'r') as f:
             data = json.load(f)
 
-            for image_data in data["images"]:
-                folder, file = os.path.split(image_data["file_name"])
-                new_filename = "{}_{}".format(folder, file)
-                image_data["file_name"] = new_filename
+            for image_data in data['images']:
+                # e.g. 'images/HealingPlanet', '000.jpg'
+                folder, file = os.path.split(image_data['file_name'])
+                src_path = os.path.join(manga109_directory, folder, file)
 
-            # Extract the desired suffix from the original filename
-            filename_suffix = next(suffix for suffix in ["test", "val", "train"] if suffix in json_file)
-            if filename_suffix:
-                new_json_filename = f'{filename_suffix}.json'
-                # Write the updated data to a new json file in tmp_json_dir with the new name
-                with open(os.path.join(tmp_json_dir, new_json_filename), 'w') as out_f:
-                    json.dump(data, out_f, indent=4)
+                new_filename = f'{folder}_{file}'.removeprefix('images/')
+                dest_path = os.path.join(tmp_img_subdir, new_filename)
+                os.symlink(os.path.abspath(src_path), dest_path)
+
+                image_data['file_name'] = new_filename
+
+            # Write the updated data to a new json file in tmp_json_dir
+            with open(os.path.join(tmp_json_dir, os.path.basename(json_file)), 'w') as out_f:
+                json.dump(data, out_f, indent=4)
 
     return main_tmp_dir
 
+
+# Convert the Manga109 dataset from COCO format to YOLO format
 if __name__ == '__main__':
-    # Convert the Manga109 dataset from COCO format to YOLO format
-    fixed_coco_dir = flatten_dir_with_links('manga109/images', 'manga109/annotations_coco_format')
+    fixed_coco_dir = flatten_dir_with_links('manga109', 'manga109/annotations_coco_format')
 
-    for typ in ['train', 'val', 'test']:
-        sv.DetectionDataset.from_coco(
-            images_directory_path=f'{fixed_coco_dir}',
-            annotations_path=f'{fixed_coco_dir}/annotations/{typ}.json',
-            force_masks=False
-        ).as_yolo(
-            images_directory_path=f'manga109/yolo_format/images/{typ}',
-            annotations_directory_path=f'manga109/yolo_format/labels/{typ}',
-            data_yaml_path='manga109/yolo_format/manga109.yaml'
-        )
+    os.chdir('manga109')
+    convert_coco(labels_dir=f'{fixed_coco_dir}/annotations')
 
-    # takes a while...
+    # moves the symlinks to the `yolo_labels/images`
+    shutil.rmtree('yolo_labels/images')
+    shutil.move(f'{fixed_coco_dir}/images', 'yolo_labels')
