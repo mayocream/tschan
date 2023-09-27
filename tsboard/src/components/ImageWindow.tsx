@@ -7,7 +7,6 @@ function ImageWindow({ imageUrl = SampleImage01 }) {
   const canvasNodeRef = useRef<HTMLCanvasElement>(null)
   const canvasRef = useRef<fabric.Canvas>()
   const zoomInputRef = useRef<HTMLInputElement>(null)
-  const [currentZoom, setCurrentZoom] = useState(1)
 
   useLayoutEffect(() => {
     initCanvas()
@@ -41,18 +40,11 @@ function ImageWindow({ imageUrl = SampleImage01 }) {
   }
 
   const displayZoomWithUnit = (zoom: number) => {
-    setCurrentZoom(zoom)
     zoomInputRef.current!.value = `${(zoom * 100).toPrecision(4)}%`
   }
 
   const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const zoom = parseFloat(e.target.value) / 100
-
-    // FIXME: canvas width can't larger than window width
-    if (canvasRef.current!.width * zoom > canvasWindowRef.current!.clientWidth) {
-      zoomInputRef.current!.value = `${(currentZoom * 100).toPrecision(4)}%`
-      return
-    }
 
     const canvas = canvasRef.current!
     canvas.setDimensions({ height: canvas.height * zoom, width: canvas.width * zoom }, { cssOnly: true })
@@ -66,11 +58,11 @@ function ImageWindow({ imageUrl = SampleImage01 }) {
   }
 
   return (
-    <div className='flex flex-col h-screen'>
+    <>
       <div className='flex grow justify-center preview overflow-auto' ref={canvasWindowRef}>
         <canvas ref={canvasNodeRef} />
       </div>
-      <div className='flex bg-base-200 h-[.8rem]'>
+      <div className='flex fixed bottom-0 w-full bg-base-200 h-[.8rem] opacity-70'>
         <input
           ref={zoomInputRef}
           onBlur={handleZoomChange}
@@ -80,7 +72,7 @@ function ImageWindow({ imageUrl = SampleImage01 }) {
           onChange={(e) => (zoomInputRef.current!.value = e.target.value)}
         />
       </div>
-    </div>
+    </>
   )
 }
 
