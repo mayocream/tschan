@@ -10,9 +10,11 @@ function ImageWindow({ imageUrl = SampleImage01 }) {
 
   useLayoutEffect(() => {
     initCanvas()
+    document.addEventListener('wheel', handlePanZoom, { passive: false })
 
     return () => {
       canvasRef.current?.dispose()
+      document.removeEventListener('wheel', handlePanZoom)
     }
   }, [])
 
@@ -57,6 +59,22 @@ function ImageWindow({ imageUrl = SampleImage01 }) {
     }
   }
 
+  const handlePanZoom = (e: React.WheelEvent<HTMLDivElement> | any) => {
+    if (!e.ctrlKey) return
+    e.preventDefault()
+    e.stopPropagation()
+
+    const delta = e.deltaY
+    let zoom = parseFloat(zoomInputRef.current!.value) / 100
+    zoom *= 0.999 ** delta
+    if (zoom > 20) zoom = 20
+    if (zoom < 0.01) zoom = 0.01
+
+    const canvas = canvasRef.current!
+    canvas.setDimensions({ height: canvas.height * zoom, width: canvas.width * zoom }, { cssOnly: true })
+    displayZoomWithUnit(zoom)
+  }
+
   return (
     <>
       <div className='flex grow justify-center preview overflow-auto' ref={canvasWindowRef}>
@@ -67,10 +85,11 @@ function ImageWindow({ imageUrl = SampleImage01 }) {
           ref={zoomInputRef}
           onBlur={handleZoomChange}
           onKeyDown={handleZoomEnter}
-          className='w-[75px] text-[12px] text-center focus:outline-none bg-base-content'
+          className='w-[75px] text-[12px] text-center focus:outline-none bg-slate-900 opacity-100'
           type='text'
           onChange={(e) => (zoomInputRef.current!.value = e.target.value)}
         />
+        <span className='text-[10px] leading-[12px] ml-5'>{`770 px x 1080 px (72 ppi)`}</span>
       </div>
     </>
   )
