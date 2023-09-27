@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* https://github.com/tauri-apps/tauri/issues/4309 */
+html, body {
+  overscroll-behavior-y: none;
+}
+
 :root {
   font-family: 'DotGothic16', sans-serif;
   /* line-height: 1.5;
@@ -11,14 +16,14 @@
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
 
-  /* font-synthesis: none;
+  font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%; */
+  -webkit-text-size-adjust: 100%;
 
-  font-smooth: never;
-  -webkit-font-smoothing : none;
+  /* font-smooth: never;
+  -webkit-font-smoothing : none; */
 }
 
 .preview {
