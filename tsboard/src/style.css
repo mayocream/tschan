@@ -9,8 +9,8 @@ html, body {
 
 :root {
   font-family: 'DotGothic16', sans-serif;
-  /* line-height: 1.5;
-  font-weight: 400; */
+  line-height: 1.5;
+  font-weight: 400;
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -21,19 +21,6 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
-
-  /* font-smooth: never;
-  -webkit-font-smoothing : none; */
-}
-
-.preview {
-  background-image: repeating-linear-gradient(
-    45deg,
-    hsl(var(--b1)),
-    hsl(var(--b1)) 13px,
-    hsl(var(--b2)) 13px,
-    hsl(var(--b2)) 14px
-  );
 }
 
 button, input, optgroup, select, textarea {

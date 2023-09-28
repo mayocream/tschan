@@ -2,4 +2,5 @@
     "rust-analyzer.linkedProjects": [
         "tsboard/src-tauri/Cargo.toml"
     ],
+    "recommendations": ["Vue.volar", "Vue.vscode-typescript-vue-plugin"]
 }
