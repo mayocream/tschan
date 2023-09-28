@@ -3,69 +3,79 @@ import { computed, onMounted, ref } from 'vue'
 import { Application, Sprite, Assets } from 'pixi.js'
 import sampleImage from '../assets/128.jpg'
 
+let app: Application
+
 const canvasWindow = ref<HTMLDivElement>()
 const canvas = ref<HTMLCanvasElement>()
-
-const imageDimensions = computed(() => {
-  return `770 px x 1080px (72ppi)`
-})
+const zoom = ref(1)
+const zoomIndicator = computed(() => `${(zoom.value * 100).toPrecision(4)}%`)
 
 const zoomAspectRatio = (imageWidth: number, imageHeight: number, zoomFactor?: number): [number, number, number] => {
   const screenWidth = canvasWindow.value!.clientWidth
   const screenHeight = canvasWindow.value!.clientHeight
   // scale to the screen size by default
-  if (!zoomFactor) {
-    zoomFactor = Math.min(screenWidth / imageWidth, screenHeight / imageHeight)
-    zoomFactor = zoomFactor > 1 ? 1 : zoomFactor
-  }
-  return [imageWidth * zoomFactor, imageHeight * zoomFactor, zoomFactor]
+  zoomFactor = zoomFactor ?? Math.min(screenWidth / imageWidth, screenHeight / imageHeight, 1)
+  zoomFactor = Math.min(Math.max(zoomFactor, 0.01), 10)
+  return [Math.floor(imageWidth * zoomFactor), Math.floor(imageHeight * zoomFactor), zoomFactor]
+}
+
+const setZoomAndTransform = (value?: string | number) => {
+  const inputZoom = typeof value == 'string' ? parseFloat(value) / 100 : value
+  let [width, height, zoomFactor] = zoomAspectRatio(app.renderer.width, app.renderer.height, inputZoom)
+  app.view.style!.width = `${width}px`
+  app.view.style!.height = `${height}px`
+  zoom.value = zoomFactor
+}
+
+const handlePanZoom = (e: WheelEvent) => {
+  if (!e.ctrlKey) return
+  e.preventDefault()
+  e.stopPropagation()
+
+  const delta = e.deltaY
+  let zoomFactor = (0.999 ** delta) * zoom.value
+  setZoomAndTransform(zoomFactor)
 }
 
 onMounted(async () => {
   const bgTexture = await Assets.load(sampleImage)
 
   // let the canvas equal to the image, like an actual "canvas"
-  const app = new Application({
+  app = new Application({
     view: canvas.value!,
     width: bgTexture.width,
     height: bgTexture.height,
-    resolution: window.devicePixelRatio,
-    autoDensity: true,
+    // image scaled unexpectedly if resolution > 2, kept 1 for now
+    resolution: 1,
+    autoDensity: false,
   })
 
   const image = new Sprite(bgTexture)
-  image.scale.set(1)
 
-  image.anchor.x = 0
-  image.anchor.y = 0
-  image.position.x = 0
-  image.position.y = 0
-
-
-  const [imageWidth, imageHeight, zoomFactor] = zoomAspectRatio(bgTexture.width, bgTexture.height)
-
-
-  app.view.style!.width = `${imageWidth}px`
-  app.view.style!.height = `${imageHeight}px`
-
-  console.log(imageWidth, imageHeight, zoomFactor)
+  setZoomAndTransform()
 
   app.stage.addChild(image)
-
 })
 </script>
 
 <template>
-  <div class="flex grow justify-center preview overflow-auto pb-[1rem]" ref="canvasWindow">
-    <canvas ref="canvas"></canvas>
+  <div class="flex grow overflow-auto preview" @wheel="handlePanZoom" ref="canvasWindow">
+    <!-- https://stackoverflow.com/questions/33454533/cant-scroll-to-top-of-flex-item-that-is-overflowing-container -->
+    <div class="m-auto">
+      <canvas ref="canvas"></canvas>
+    </div>
   </div>
-  <div class="flex fixed bottom-0 w-full bg-base-200 h-[1rem] leading-[1rem] opacity-70">
+  <div class="flex sticky bottom-0 w-full bg-base-200 h-[1.2rem] leading-[1.2rem] opacity-70">
     <input
       ref="zoomInputRef"
       class="w-[75px] text-[12px] text-center focus:outline-none bg-slate-900 opacity-100"
       type="text"
+      :value="zoomIndicator"
+      @blur="setZoomAndTransform(($event.target as HTMLInputElement).value)"
+      @keydown.enter="($event.target as HTMLInputElement).blur()"
     />
-    <span class="text-[10px] px-5 bg-black">{{ imageDimensions }}</span>
+    <!-- @vue-skip -->
+    <span class="text-[12px] px-5 bg-black">{{ `${canvas?.width} px x ${canvas?.height} px (${window.devicePixelRatio} dppx)` }}</span>
   </div>
 </template>
 

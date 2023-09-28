@@ -8,7 +8,7 @@ html, body {
 }
 
 :root {
-  font-family: 'DotGothic16', sans-serif;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -28,4 +28,34 @@ button, input, optgroup, select, textarea {
   font-size: inherit;
   line-height: inherit;
   color: inherit;
+}
+
+::-webkit-scrollbar-track
+{
+	background: transparent;
+}
+
+::-webkit-scrollbar
+{
+	width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb
+{
+	border-radius: 10px;
+	background-color: rgba(255, 255, 255, 0.4);
+}
+
+::-webkit-scrollbar-corner
+{
+  background: transparent;
+}
+
+.rtl {
+  direction: rtl;
+}
+
+.ltr {
+  direction: ltr;
 }
