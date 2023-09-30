@@ -32,6 +32,39 @@ export function process_output(output: any, img_width: number = 1, img_height: n
   return nms(boxes)
 }
 
+export function process_output_v5(output: any, img_width: number = 1, img_height: number = 1) {
+  const boxes: any[] = []
+  for (let i = 0; i < output.length; i += 7) {
+    let label, prob
+
+    if (output[i + 4] > output[i + 5] && output[i + 4] > output[i + 6]) {
+      label = '1'
+      prob = output[i + 4]
+    } else if (output[i + 5] > output[i + 4] && output[i + 5] > output[i + 6]) {
+      label = '2'
+      prob = output[i + 5]
+    } else {
+      label = '3'
+      prob = output[i + 6]
+    }
+
+    if (prob < 0.9) continue
+
+    const xc = output[i]
+    const yc = output[i + 1]
+    const w = output[i + 2]
+    const h = output[i + 3]
+    const x1 = ((xc - w / 2) / 1024) * img_width
+    const y1 = ((yc - h / 2) / 1024) * img_height
+    const x2 = ((xc + w / 2) / 1024) * img_width
+    const y2 = ((yc + h / 2) / 1024) * img_height
+
+    boxes.push([x1, y1, x2, y2, label, prob])
+  }
+
+  return nms(boxes)
+}
+
 function overlaps(boxA: any[], boxB: any[]): boolean {
   return !(boxA[2] < boxB[0] || boxA[0] > boxB[2] || boxA[3] < boxB[1] || boxA[1] > boxB[3])
 }

@@ -1,13 +1,19 @@
 import { InferenceSession, Tensor } from 'onnxruntime-web'
 import { resizeImageData } from './resizeImage'
-import { process_output } from './yolov8'
+import { process_output, process_output_v5 } from './yolov8'
 
 export async function inferenceYolo(url: string): Promise<[any, number]> {
-  // 1. Convert image to tensor
   const imageTensor = await getImageTensorFromUrl(url)
-  // 2. Run model
   const [predictions, inferenceTime] = await runYoloModel(imageTensor)
-  // 3. Return predictions and the amount of time it took to inference.
+  return [predictions, inferenceTime]
+}
+
+export async function inferenceTextDetector(url: string): Promise<[any, number]> {
+  const imageTensor = await getImageTensorFromUrl(url, [1, 3, 1024, 1024])
+  const [predictions, inferenceTime] = await runComicTextDetectorModel(imageTensor)
+
+  console.log('inferenceTextDetector: ', predictions, inferenceTime)
+
   return [predictions, inferenceTime]
 }
 
@@ -24,10 +30,23 @@ const runYoloModel = async (preprocessedData: any): Promise<[any, number]> => {
   // Create session and set options. See the docs here for more options:
   //https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.SessionOptions.html#graphOptimizationLevel
   const session = await InferenceSession.create('/models/best.onnx')
-  console.log('Inference session created')
-  // Run inference and get results.
-  var [results, inferenceTime] = await runInference(session, preprocessedData)
-  return [results, inferenceTime]
+  const [output, inferenceTime] = await runInference(session, preprocessedData)
+  const results = output[session.outputNames[0]]
+  const boxes = process_output(results.data)
+  return [boxes, inferenceTime]
+}
+
+const runComicTextDetectorModel = async (preprocessedData: any): Promise<[any, number]> => {
+  const session = await InferenceSession.create('/models/comictextdetector.pt.onnx')
+  const [output, inferenceTime] = await runInference(session, preprocessedData)
+
+  console.log('runComicTextDetectorModel: ', output, inferenceTime)
+
+  const blks = output[session.outputNames[0]]
+  const boxes = process_output_v5(blks.data)
+  console.log('commic text detector: ', boxes)
+
+  return [boxes, inferenceTime]
 }
 
 const runInference = async (session: InferenceSession, preprocessedData: any): Promise<[any, number]> => {
@@ -37,14 +56,11 @@ const runInference = async (session: InferenceSession, preprocessedData: any): P
   const feeds: Record<string, Tensor> = {}
   feeds[session.inputNames[0]] = preprocessedData
   // Run the session inference.
-  const outputData = await session.run(feeds)
+  const output = await session.run(feeds)
   // Get the end time to calculate inference time.
   const end = new Date()
   // Convert to seconds.
   const inferenceTime = (end.getTime() - start.getTime()) / 1000
-  // Get output results with the output name from the model export.
-  const output = outputData[session.outputNames[0]]
 
-  const boxes = process_output(output.data)
-  return [boxes, inferenceTime]
+  return [output, inferenceTime]
 }
