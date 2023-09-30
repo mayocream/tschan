@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 /* https://github.com/tauri-apps/tauri/issues/4309 */
-html, body {
+html,
+body {
   overscroll-behavior-y: none;
 }
 
@@ -23,32 +24,32 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-button, input, optgroup, select, textarea {
+button,
+input,
+optgroup,
+select,
+textarea {
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
   color: inherit;
 }
 
-::-webkit-scrollbar-track
-{
-	background: transparent;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-::-webkit-scrollbar
-{
-	width: 4px;
+::-webkit-scrollbar {
+  width: 4px;
   height: 4px;
 }
 
-::-webkit-scrollbar-thumb
-{
-	border-radius: 10px;
-	background-color: rgba(255, 255, 255, 0.4);
+::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
-::-webkit-scrollbar-corner
-{
+::-webkit-scrollbar-corner {
   background: transparent;
 }
 
