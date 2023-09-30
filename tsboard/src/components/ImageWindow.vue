@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import sampleImage from '../assets/128.jpg'
-import { Canvas, Image } from 'fabric'
+import { Canvas, Image, Rect } from 'fabric'
+import { inferenceYolo } from '../libs/inferenceOnnx'
 
 const image = reactive({
   width: 0,
@@ -53,6 +54,22 @@ onMounted(async () => {
     height: image.height,
   })
   setZoomAndTransform()
+  canvas.renderAll()
+
+  const [boxes] = await inferenceYolo(sampleImage)
+  boxes.forEach((box: any[]) => {
+    const rect = new Rect({
+      left: box[0] * image.width,
+      top: box[1] * image.height,
+      width: box[2] * image.width - box[0] * image.width,
+      height: box[3] * image.height - box[1] * image.height,
+      stroke: 'red',
+      strokeWidth: 4,
+      fill: 'transparent',
+    })
+    console.log('box: ', box)
+    canvas.add(rect)
+  })
   canvas.renderAll()
 })
 </script>

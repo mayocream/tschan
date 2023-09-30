@@ -26,15 +26,30 @@ export default async function resizeImage(imageSrc: string, maxWidth: number, ma
   const offscreenCanvas = new OffscreenCanvas(width, height)
   const ctx = offscreenCanvas.getContext('2d')
 
-  if (!ctx) {
-    throw new Error('Failed to get the 2D context from OffscreenCanvas')
-  }
-
   // Draw and resize
-  ctx.drawImage(imageBitmap, 0, 0, width, height)
+  ctx!.drawImage(imageBitmap, 0, 0, width, height)
 
   // Convert canvas to blob
   const resizedBlob = await offscreenCanvas.convertToBlob()
 
   return resizedBlob
+}
+
+export async function resizeImageData(imageSrc: string, width: number, height: number): Promise<ImageData> {
+  // Fetch image as blob
+  const response = await fetch(imageSrc)
+  const blob = await response.blob()
+  const imageBitmap = await createImageBitmap(blob)
+
+  // Create offscreen canvas
+  const offscreenCanvas = new OffscreenCanvas(width, height)
+  const ctx = offscreenCanvas.getContext('2d')
+
+  // Draw and resize
+  ctx!.drawImage(imageBitmap, 0, 0, width, height)
+
+  // Convert canvas to blob
+  const data = ctx!.getImageData(0, 0, width, height)
+
+  return data
 }
