@@ -7,7 +7,7 @@
  * @returns Array of detected objects in a format [[x1,y1,x2,y2,object_type,probability],..]
  */
 export function process_output(output: any, img_width: number = 1, img_height: number = 1) {
-  let boxes: any[] = []
+  const boxes: any[] = []
   // yolov8 has an output of shape (batchSize, 5,  8400) (Num classes + box[x,y,w,h])
   for (let index = 0; index < 8400; index++) {
     const [class_id, prob] = [...Array(yolo_classes.length).keys()]
@@ -29,15 +29,32 @@ export function process_output(output: any, img_width: number = 1, img_height: n
     boxes.push([x1, y1, x2, y2, label, prob])
   }
 
-  boxes = boxes.sort((box1, box2) => box2[5] - box1[5])
-  // const result = []
-  // while (boxes.length > 0) {
-  //   result.push(boxes[0])
-  //   boxes = boxes.filter((box) => iou(boxes[0], box) < 0.7)
-  // }
-  return boxes
+  return nms(boxes)
 }
 
+function overlaps(boxA: any[], boxB: any[]): boolean {
+  return !(boxA[2] < boxB[0] || boxA[0] > boxB[2] || boxA[3] < boxB[1] || boxA[1] > boxB[3])
+}
+
+function nms(boxes: any[]): any[] {
+  const sortedIndices = boxes.map((_, index) => index).sort((a, b) => boxes[b][4] - boxes[a][4]) // Sort by score
+
+  const filteredBoxes: any[] = []
+
+  while (sortedIndices.length > 0) {
+    const currentIndex = sortedIndices.shift()!
+    const currentBox = boxes[currentIndex]
+    filteredBoxes.push(currentBox)
+
+    for (let i = sortedIndices.length - 1; i >= 0; i--) {
+      if (overlaps(currentBox, boxes[sortedIndices[i]])) {
+        sortedIndices.splice(i, 1)
+      }
+    }
+  }
+
+  return filteredBoxes
+}
 /**
  * Function calculates "Intersection-over-union" coefficient for specified two boxes
  * https://pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/.
