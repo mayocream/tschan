@@ -57,9 +57,13 @@ class Manga109COCOConverter():
             "url": "http://www.manga109.org/",
         }]
         self.target_categories = [
-            # We use only 1 category for text.
             {
                 "id": 1,
+                "name": "frame",
+                "supercategory": "art",
+            },
+            {
+                "id": 2,
                 "name": "text",
                 "supercategory": "text",
             },
