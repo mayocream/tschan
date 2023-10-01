@@ -67,26 +67,6 @@ class Manga109COCOConverter():
                 "name": "text",
                 "supercategory": "text",
             },
-            # {
-            #     "id": 1,
-            #     "name": "body",
-            #     "supercategory": "character",
-            # },
-            # {
-            #     "id": 2,
-            #     "name": "face",
-            #     "supercategory": "character",
-            # },
-            # {
-            #     "id": 3,
-            #     "name": "frame",
-            #     "supercategory": "art",
-            # },
-            # {
-            #     "id": 4,
-            #     "name": "text",
-            #     "supercategory": "text",
-            # },
         ]
         self.category_name_to_id = {category['name']: category['id'] for category in self.target_categories}
 
@@ -105,8 +85,6 @@ class Manga109COCOConverter():
         print('processing', book)
         annotation = self.parser.get_annotation(book=book, separate_by_tag=False)
         book_title = annotation['title']
-        # characters = [{'id': int(chara['@id'], 16), 'name': chara['@name']} for chara in annotation['character']]
-        # self.characters.extend(characters)
 
         page_annotations = annotation['page']
         if self.page_limit is not None:
@@ -145,8 +123,8 @@ class Manga109COCOConverter():
     def add_coco_annotation_dict(self, contents):
         annotation_dicts = []
         for content in contents:
-            # We use only 1 category for text.
-            if content['type'] != 'text':
+            # skip non-text and non-frame
+            if content['type'] != 'text' and content['type'] != 'frame':
                 continue
 
             annotation_id = int(content['@id'], 16)
@@ -170,8 +148,6 @@ class Manga109COCOConverter():
             if self.add_manga109_info:
                 if '#text' in content:
                     annotation_dict["text"] = content['#text']
-                # if '@character' in content:
-                #     annotation_dict["character_id"] = content['@character']
 
             annotation_dicts.append(annotation_dict)
         self.annotation_dicts.extend(annotation_dicts)
@@ -192,14 +168,6 @@ class Manga109COCOConverter():
             annotation_unique_ids = np.unique(np.array(annotation_ids))
             if len(self.annotation_dicts) != len(annotation_unique_ids):
                 raise RuntimeError('non-unique annotation id found')
-        # if self.add_manga109_info:
-            # print('Total characters:', len(self.characters), '(Some characters may be counted twice)')
-            # output_dict["characters"] = self.characters
-            # verify whether character ids are unique
-            # character_ids = [chara['id'] for chara in self.characters]
-            # character_unique_ids = np.unique(np.array(character_ids))
-            # if len(self.characters) != len(character_unique_ids):
-            #     print('Warning: non-unique character id found')
 
         with open(label_path, mode='w') as f:
             # dump with a trick for rounding float
