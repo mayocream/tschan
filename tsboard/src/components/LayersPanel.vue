@@ -1,12 +1,47 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import type { Object } from 'fabric'
+import type { LayerProps } from '../tschan'
+import { storeToRefs } from 'pinia'
+import { useCanvasStore } from '../store'
+import { watch, ref } from 'vue'
+
+const canvasStore = useCanvasStore()
+const { canvas, objects } = storeToRefs(canvasStore)
+
+interface Layer extends LayerProps {
+  object: Object
+}
+
+const layers = ref<Layer[]>([])
+
+watch(
+  objects,
+  () => {
+    layers.value = canvas.value!.getObjects().map((object) => {
+      const { id, type, name, order } = object.get('ts') as LayerProps
+      return {
+        id,
+        type,
+        name,
+        order,
+        object: object,
+      }
+    })
+  },
+  { deep: true }
+)
+</script>
 
 <template>
-  <aside
-    class="sidebar w-48 -translate-x-full transform bg-white p-4 transition-transform duration-150 ease-in md:translate-x-0 md:shadow-md"
-  >
-    <div class="my-4 w-full border-b-4 border-indigo-100 text-center">
-      <span class="font-mono text-xl font-bold tracking-widest"> <span class="text-indigo-600">HELLO</span> DEV </span>
+  <div class="flex flex-col w-[14rem]">
+    <div class="grow min-h-0 min-w-0"></div>
+    <div class="grow min-h-0 min-w-0">
+      <div class="flex flex-col">
+        <div v-for="layer in layers" :key="layer.id" class="flex">
+          <div>{{ layer.order }} {{ layer.name }}</div>
+        </div>
+        <div class="fixed bottom-0 flex bg-slate-600 h-[1.5rem] w-[14rem]"></div>
+      </div>
     </div>
-    <div class="my-4"></div>
-  </aside>
+  </div>
 </template>

@@ -11,7 +11,7 @@ import ThumbnailsPanel from './components/ThumbnailsPanel.vue';
     <main class="flex flex-col grow min-h-0 min-w-0">
       <ImageWindow />
     </main>
-    <aside>
+    <aside class="flex">
       <LayersPanel />
     </aside>
   </div>

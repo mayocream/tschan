@@ -49,7 +49,7 @@ onMounted(async () => {
     <div class="flex flex-row flex-wrap justify-stretch my-2 gap-y-2">
       <figure
         v-for="image in imageList"
-        @click="imagesStore.setCurrent(image.id)"
+        @click="imagesStore.current = image.id"
         :key="image.id"
         :data-active="image.id == imagesStore.current"
         class="w-24 h-34 m-auto opacity-70 hover:opacity-100 relative box-border data-[active=true]:opacity-100 data-[active=true]:border-2 data-[active=true]:border-blue-500"

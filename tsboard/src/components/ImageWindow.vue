@@ -4,9 +4,13 @@ import { storeToRefs } from 'pinia'
 import { Canvas, Image, Rect, Circle, Text, Group } from 'fabric'
 import { inferenceYoloDetection } from '../libs/inferenceOnnx'
 import { orderTextBoxes } from '../libs/manga'
-import { useImagesStore } from '../store'
+import { useImagesStore, useCanvasStore } from '../store'
+import { uid } from '../libs/uid'
+import { LayerProps } from '../tschan'
 
 const imagesStore = useImagesStore()
+const canvasStore = useCanvasStore()
+const { canvas } = storeToRefs(canvasStore)
 const { currentImage } = storeToRefs(imagesStore)
 
 const fontScaleRatio = computed(() => Math.max(1, image.height / 1080))
@@ -15,8 +19,6 @@ const image = reactive({
   width: 0,
   height: 0,
 })
-
-let canvas: Canvas
 
 const canvasWindow = ref<HTMLDivElement>()
 const canvasNode = ref<HTMLCanvasElement>()
@@ -35,7 +37,7 @@ const zoomAspectRatio = (imageWidth: number, imageHeight: number, zoomFactor?: n
 const setZoomAndTransform = (value?: string | number) => {
   const inputZoom = typeof value == 'string' ? parseFloat(value) / 100 : value
   let [width, height, zoomFactor] = zoomAspectRatio(image.width, image.height, inputZoom)
-  canvas.setDimensions({ width, height }, { cssOnly: true })
+  canvas.value!.setDimensions({ width, height }, { cssOnly: true })
   zoom.value = zoomFactor
 }
 
@@ -76,7 +78,6 @@ const detectBoxes = async (imageSrc: string) => {
       top: rect.top,
       originX: 'center',
       originY: 'center',
-      selectable: false,
       opacity: 0.7,
     })
 
@@ -92,9 +93,23 @@ const detectBoxes = async (imageSrc: string) => {
       textAlign: 'center',
     })
 
-    const group = new Group([rect, circle, text])
+    const group = new Group([rect, circle, text], {
+      // lock movement by default until the user clicks on the layer
+      hoverCursor: 'default',
+      interactive: true,
+      selectable: true,
+      hasControls: true,
+    })
 
-    canvas.add(group)
+    group.set('ts', <LayerProps>{
+      id: uid(),
+      type: 'textbox',
+      name: `Text...`,
+      order: i,
+    })
+
+    canvas.value!.add(group)
+    canvas.value!.renderAll()
   })
 }
 
@@ -103,22 +118,27 @@ const initCanvas = async (imageSrc: string) => {
   image.width = img.width
   image.height = img.height
 
-  if (canvas) {
-    canvas.clear()
+  if (canvas.value) {
+    canvas.value.clear()
   } else {
-    canvas = new Canvas(canvasNode.value!, {
+    canvasStore.canvas = new Canvas(canvasNode.value!, {
       enableRetinaScaling: true,
+      selection: true,
+      fireRightClick: true,
+      stopContextMenu: true,
+      controlsAboveOverlay: true,
     })
   }
 
-  canvas.backgroundImage = img
-  canvas.setDimensions({ width: image.width, height: image.height }, { backstoreOnly: true })
+  // do not change the order of the layers
+  // canvas.value!.preserveObjectStacking = true
+  canvas.value!.backgroundImage = img
+  canvas.value!.setDimensions({ width: image.width, height: image.height }, { backstoreOnly: true })
 
   setZoomAndTransform()
-  canvas.renderAll()
+  canvas.value!.renderAll()
 
   await detectBoxes(imageSrc)
-  canvas.renderAll()
 }
 
 watch(currentImage, async () => {
@@ -127,7 +147,7 @@ watch(currentImage, async () => {
 })
 
 onMounted(async () => {
-  initCanvas(currentImage.value)
+  await initCanvas(currentImage.value)
 })
 </script>
 
