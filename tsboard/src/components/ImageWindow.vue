@@ -1,8 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import sampleImage from '../assets/128.jpg'
-import { Canvas, Image, Rect } from 'fabric'
-import { inferenceYolo } from '../libs/inferenceOnnx'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { Canvas, Image, Rect, Circle, Text, Group } from 'fabric'
+import { inferenceYoloDetection } from '../libs/inferenceOnnx'
+import { orderTextBoxes } from '../libs/manga'
+import { useImagesStore } from '../store'
+
+const imagesStore = useImagesStore()
+const { currentImage } = storeToRefs(imagesStore)
+
+const fontScaleRatio = computed(() => Math.max(1, image.height / 1080))
 
 const image = reactive({
   width: 0,
@@ -42,35 +49,85 @@ const handlePanZoom = (e: WheelEvent) => {
   setZoomAndTransform(zoomFactor)
 }
 
-onMounted(async () => {
-  const img = await Image.fromURL(sampleImage, {}, {})
-  image.width = img.width
-  image.height = img.height
+const detectBoxes = async (imageSrc: string) => {
+  const boxes = await inferenceYoloDetection(imageSrc)
+  const textBoxes = orderTextBoxes(
+    boxes.filter((box) => box[4] == 'frame'),
+    boxes.filter((box) => box[4] == 'text')
+  )
 
-  canvas = new Canvas(canvasNode.value!, {
-    backgroundImage: img,
-    enableRetinaScaling: true,
-    width: image.width,
-    height: image.height,
-  })
-  setZoomAndTransform()
-  canvas.renderAll()
-
-  const [boxes] = await inferenceYolo(sampleImage)
-  boxes.forEach((box: any[]) => {
+  textBoxes.forEach((box, i) => {
     const rect = new Rect({
       left: box[0] * image.width,
       top: box[1] * image.height,
       width: box[2] * image.width - box[0] * image.width,
       height: box[3] * image.height - box[1] * image.height,
       stroke: 'red',
-      strokeWidth: 4,
+      strokeWidth: 2 * fontScaleRatio.value,
       fill: 'transparent',
+      opacity: 0.4,
+      rx: 4 * fontScaleRatio.value,
     })
-    console.log('box: ', box)
-    canvas.add(rect)
+
+    const circle = new Circle({
+      radius: 12 * fontScaleRatio.value,
+      fill: 'red',
+      left: rect.left,
+      top: rect.top,
+      originX: 'center',
+      originY: 'center',
+      selectable: false,
+      opacity: 0.7,
+    })
+
+    const text = new Text(`${i + 1}`, {
+      fontSize: 16 * fontScaleRatio.value,
+      fontFamily: 'system-ui, sans-serif',
+      fontWeight: 'bold',
+      fill: 'white',
+      left: circle.left,
+      top: circle.top,
+      originX: 'center',
+      originY: 'center',
+      textAlign: 'center',
+    })
+
+    const group = new Group([rect, circle, text])
+
+    canvas.add(group)
   })
+}
+
+const initCanvas = async (imageSrc: string) => {
+  const img = await Image.fromURL(imageSrc, {}, {})
+  image.width = img.width
+  image.height = img.height
+
+  if (canvas) {
+    canvas.clear()
+  } else {
+    canvas = new Canvas(canvasNode.value!, {
+      enableRetinaScaling: true,
+    })
+  }
+
+  canvas.backgroundImage = img
+  canvas.setDimensions({ width: image.width, height: image.height }, { backstoreOnly: true })
+
+  setZoomAndTransform()
   canvas.renderAll()
+
+  await detectBoxes(imageSrc)
+  canvas.renderAll()
+}
+
+watch(currentImage, async () => {
+  if (!currentImage) return
+  await initCanvas(currentImage.value)
+})
+
+onMounted(async () => {
+  initCanvas(currentImage.value)
 })
 </script>
 

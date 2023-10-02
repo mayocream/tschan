@@ -1,66 +1,48 @@
 import { InferenceSession, Tensor } from 'onnxruntime-web'
 import { resizeImageData } from './resizeImage'
-import { process_output, process_output_v5 } from './yolov8'
+import { Box, processOutput } from './yolov8'
 
-export async function inferenceYolo(url: string): Promise<[any, number]> {
+const Yolov8Session = await InferenceSession.create('/models/yolov8n.onnx')
+
+export async function inferenceYoloDetection(url: string): Promise<Box[]> {
   const imageTensor = await getImageTensorFromUrl(url)
   const [predictions, inferenceTime] = await runYoloModel(imageTensor)
-  return [predictions, inferenceTime]
-}
 
-export async function inferenceTextDetector(url: string): Promise<[any, number]> {
-  const imageTensor = await getImageTensorFromUrl(url, [1, 3, 1024, 1024])
-  const [predictions, inferenceTime] = await runComicTextDetectorModel(imageTensor)
+  const start = new Date()
+  const boxes = processOutput(predictions)
+  const end = new Date()
+  const nmsTime = end.getTime() - start.getTime()
 
-  console.log('inferenceTextDetector: ', predictions, inferenceTime)
+  console.log(`Inference Yolo Detection, boxes:`, boxes, `, model time: ${inferenceTime} ms, NMS time: ${nmsTime} ms`)
 
-  return [predictions, inferenceTime]
+  return boxes
 }
 
 const getImageTensorFromUrl = async (url: string, dims: number[] = [1, 3, 640, 640]): Promise<Tensor> => {
-  // 1. load the image
   const image = await resizeImageData(url, dims[2], dims[3])
-  // 2. convert to tensor
   const imageTensor = await Tensor.fromImage(image)
-  // 3. return the tensor
   return imageTensor
 }
 
-const runYoloModel = async (preprocessedData: any): Promise<[any, number]> => {
+const runYoloModel = async (preprocessedData: any): Promise<[Float32Array, number]> => {
   // Create session and set options. See the docs here for more options:
   //https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.SessionOptions.html#graphOptimizationLevel
-  const session = await InferenceSession.create('/models/best.onnx')
+  const session = Yolov8Session
   const [output, inferenceTime] = await runInference(session, preprocessedData)
-  const results = output[session.outputNames[0]]
-  const boxes = process_output(results.data)
-  return [boxes, inferenceTime]
+  const results = output[session.outputNames[0]].data as Float32Array
+  return [results, inferenceTime]
 }
 
-const runComicTextDetectorModel = async (preprocessedData: any): Promise<[any, number]> => {
-  const session = await InferenceSession.create('/models/comictextdetector.pt.onnx')
-  const [output, inferenceTime] = await runInference(session, preprocessedData)
-
-  console.log('runComicTextDetectorModel: ', output, inferenceTime)
-
-  const blks = output[session.outputNames[0]]
-  const boxes = process_output_v5(blks.data)
-  console.log('commic text detector: ', boxes)
-
-  return [boxes, inferenceTime]
-}
-
-const runInference = async (session: InferenceSession, preprocessedData: any): Promise<[any, number]> => {
-  // Get start time to calculate inference time.
+const runInference = async (
+  session: InferenceSession,
+  preprocessedData: any
+): Promise<[InferenceSession.ReturnType, number]> => {
   const start = new Date()
-  // create feeds with the input name from model export and the preprocessed data.
   const feeds: Record<string, Tensor> = {}
   feeds[session.inputNames[0]] = preprocessedData
-  // Run the session inference.
   const output = await session.run(feeds)
-  // Get the end time to calculate inference time.
   const end = new Date()
-  // Convert to seconds.
-  const inferenceTime = (end.getTime() - start.getTime()) / 1000
+  const inferenceTime = end.getTime() - start.getTime()
 
   return [output, inferenceTime]
 }

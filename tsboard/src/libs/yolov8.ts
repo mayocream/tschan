@@ -1,138 +1,117 @@
-/**
- * Function used to convert RAW output from YOLOv8 to an array of detected objects.
- * Each object contain the bounding box of this object, the type of object and the probability
- * @param output Raw output of YOLOv8 network
- * @param img_width Width of original image
- * @param img_height Height of original image
- * @returns Array of detected objects in a format [[x1,y1,x2,y2,object_type,probability],..]
- */
-export function process_output(output: any, img_width: number = 1, img_height: number = 1) {
-  const boxes: any[] = []
-  // yolov8 has an output of shape (batchSize, 5,  8400) (Num classes + box[x,y,w,h])
+export type Box = [number, number, number, number, string, number]
+
+export function processOutput(data: Float32Array): Box[] {
+  let boxes: Box[] = []
+  const numOfClasses = yolo_classes.length
+  const threshold = 0.1
+  const imageSize = 640
+  const padding = 5
+
   for (let index = 0; index < 8400; index++) {
-    const [class_id, prob] = [...Array(yolo_classes.length).keys()]
-      .map((col) => [col, output[8400 * (col + 4) + index]])
-      .reduce((accum, item) => (item[1] > accum[1] ? item : accum), [0, 0])
-    // > 0.1 to filter out low probability
-    if (prob < 0.1) {
-      continue
-    }
-    const label = yolo_classes[class_id]
-    const xc = output[index]
-    const yc = output[8400 + index]
-    const w = output[2 * 8400 + index]
-    const h = output[3 * 8400 + index]
-    const x1 = ((xc - w / 2) / 640) * img_width
-    const y1 = ((yc - h / 2) / 640) * img_height
-    const x2 = ((xc + w / 2) / 640) * img_width
-    const y2 = ((yc + h / 2) / 640) * img_height
-    boxes.push([x1, y1, x2, y2, label, prob])
-  }
+    let maxProb = 0
+    let maxClassId = 0
 
-  return nms(boxes)
-}
-
-export function process_output_v5(output: any, img_width: number = 1, img_height: number = 1) {
-  const boxes: any[] = []
-  for (let i = 0; i < output.length; i += 7) {
-    let label, prob
-
-    if (output[i + 4] > output[i + 5] && output[i + 4] > output[i + 6]) {
-      label = '1'
-      prob = output[i + 4]
-    } else if (output[i + 5] > output[i + 4] && output[i + 5] > output[i + 6]) {
-      label = '2'
-      prob = output[i + 5]
-    } else {
-      label = '3'
-      prob = output[i + 6]
-    }
-
-    if (prob < 0.9) continue
-
-    const xc = output[i]
-    const yc = output[i + 1]
-    const w = output[i + 2]
-    const h = output[i + 3]
-    const x1 = ((xc - w / 2) / 1024) * img_width
-    const y1 = ((yc - h / 2) / 1024) * img_height
-    const x2 = ((xc + w / 2) / 1024) * img_width
-    const y2 = ((yc + h / 2) / 1024) * img_height
-
-    boxes.push([x1, y1, x2, y2, label, prob])
-  }
-
-  return nms(boxes)
-}
-
-function overlaps(boxA: any[], boxB: any[]): boolean {
-  return !(boxA[2] < boxB[0] || boxA[0] > boxB[2] || boxA[3] < boxB[1] || boxA[1] > boxB[3])
-}
-
-function nms(boxes: any[]): any[] {
-  const sortedIndices = boxes.map((_, index) => index).sort((a, b) => boxes[b][4] - boxes[a][4]) // Sort by score
-
-  const filteredBoxes: any[] = []
-
-  while (sortedIndices.length > 0) {
-    const currentIndex = sortedIndices.shift()!
-    const currentBox = boxes[currentIndex]
-    filteredBoxes.push(currentBox)
-
-    for (let i = sortedIndices.length - 1; i >= 0; i--) {
-      if (overlaps(currentBox, boxes[sortedIndices[i]])) {
-        sortedIndices.splice(i, 1)
+    // Find class with the highest probability
+    for (let classId = 0; classId < numOfClasses; classId++) {
+      const prob = data[8400 * (classId + 4) + index]
+      if (prob > maxProb) {
+        maxProb = prob
+        maxClassId = classId
       }
     }
+
+    // Filter out low probability
+    if (maxProb < threshold) {
+      continue
+    }
+
+    const label = yolo_classes[maxClassId]
+
+    const xc = data[index]
+    const yc = data[8400 + index]
+    const w = data[2 * 8400 + index]
+    const h = data[3 * 8400 + index]
+
+    const x1 = xc - w / 2
+    const y1 = yc - h / 2
+    const x2 = xc + w / 2
+    const y2 = yc + h / 2
+
+    boxes.push([x1, y1, x2, y2, label, maxProb])
   }
 
-  return filteredBoxes
-}
-/**
- * Function calculates "Intersection-over-union" coefficient for specified two boxes
- * https://pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/.
- * @param box1 First box in format: [x1,y1,x2,y2,object_class,probability]
- * @param box2 Second box in format: [x1,y1,x2,y2,object_class,probability]
- * @returns Intersection over union ratio as a float number
- */
-function iou(box1: any[], box2: any[]) {
-  return intersection(box1, box2) / union(box1, box2)
+  boxes = softNms(boxes)
+  for (const box of boxes) {
+    box[0] = (box[0] - padding) / imageSize
+    box[1] = (box[1] - padding) / imageSize
+    box[2] = (box[2] + padding) / imageSize
+    box[3] = (box[3] + padding) / imageSize
+  }
+
+  return boxes
 }
 
-/**
- * Function calculates union area of two boxes.
- *     :param box1: First box in format [x1,y1,x2,y2,object_class,probability]
- *     :param box2: Second box in format [x1,y1,x2,y2,object_class,probability]
- *     :return: Area of the boxes union as a float number
- * @param box1 First box in format [x1,y1,x2,y2,object_class,probability]
- * @param box2 Second box in format [x1,y1,x2,y2,object_class,probability]
- * @returns Area of the boxes union as a float number
- */
-function union(box1: any[], box2: any[]) {
-  const [box1_x1, box1_y1, box1_x2, box1_y2] = box1
-  const [box2_x1, box2_y1, box2_x2, box2_y2] = box2
-  const box1_area = (box1_x2 - box1_x1) * (box1_y2 - box1_y1)
-  const box2_area = (box2_x2 - box2_x1) * (box2_y2 - box2_y1)
-  return box1_area + box2_area - intersection(box1, box2)
+function iou(boxA: Box, boxB: Box): number {
+  const interX1 = Math.max(boxA[0], boxB[0])
+  const interY1 = Math.max(boxA[1], boxB[1])
+  const interX2 = Math.min(boxA[2], boxB[2])
+  const interY2 = Math.min(boxA[3], boxB[3])
+
+  const interArea = Math.max(0, interX2 - interX1 + 1) * Math.max(0, interY2 - interY1 + 1)
+  const boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+  const boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+
+  return interArea / (boxAArea + boxBArea - interArea)
 }
 
-/**
- * Function calculates intersection area of two boxes
- * @param box1 First box in format [x1,y1,x2,y2,object_class,probability]
- * @param box2 Second box in format [x1,y1,x2,y2,object_class,probability]
- * @returns Area of intersection of the boxes as a float number
- */
-function intersection(box1: any[], box2: any[]) {
-  const [box1_x1, box1_y1, box1_x2, box1_y2] = box1
-  const [box2_x1, box2_y1, box2_x2, box2_y2] = box2
-  const x1 = Math.max(box1_x1, box2_x1)
-  const y1 = Math.max(box1_y1, box2_y1)
-  const x2 = Math.min(box1_x2, box2_x2)
-  const y2 = Math.min(box1_y2, box2_y2)
-  return (x2 - x1) * (y2 - y1)
+function softNms(detections: Box[], sigma: number = 0.5, threshold: number = 0.4): Box[] {
+  const groupedByClass: { [key: string]: Box[] } = {}
+  for (const detection of detections) {
+    const label = detection[4]
+    if (!groupedByClass[label]) {
+      groupedByClass[label] = []
+    }
+    groupedByClass[label].push(detection)
+  }
+
+  const result: Box[] = []
+  for (const label in groupedByClass) {
+    const classDetections = groupedByClass[label]
+    classDetections.sort((a, b) => b[5] - a[5]) // Sort detections by descending score
+
+    while (classDetections.length) {
+      const maxDet = classDetections[0] // After sorting, the highest scoring detection is at index 0
+
+      if (maxDet[5] < threshold) {
+        classDetections.shift() // Remove from list and continue
+        continue
+      }
+
+      for (let j = 1; j < classDetections.length; ) {
+        const currDet = classDetections[j]
+        const overlap = iou(maxDet, currDet)
+
+        if (overlap > threshold) {
+          const weight = Math.exp(-(overlap ** 2) / sigma)
+          currDet[5] *= weight // decay the score
+
+          if (currDet[5] < threshold) {
+            classDetections.splice(j, 1)
+            continue
+          }
+        }
+        j++
+      }
+
+      result.push(maxDet)
+      classDetections.shift() // Remove the maxDet from the list
+    }
+  }
+
+  return result
 }
 
 /**
  * Array of YOLOv8 class labels
  */
-const yolo_classes = ['text']
+const yolo_classes = ['frame', 'text']
