@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { Object } from 'fabric'
 import type { LayerProps } from '../tschan'
-import { storeToRefs } from 'pinia'
-import { useCanvasStore } from '../store'
-import { watch, ref } from 'vue'
+import { useCanvas } from '../store'
+import { onMounted, ref, watch } from 'vue'
+import events from '../events';
 
-const canvasStore = useCanvasStore()
-const { canvas, objects } = storeToRefs(canvasStore)
+const canvasStore = useCanvas()
 
 interface Layer extends LayerProps {
   object: Object
@@ -14,22 +13,26 @@ interface Layer extends LayerProps {
 
 const layers = ref<Layer[]>([])
 
-watch(
-  objects,
-  () => {
-    layers.value = canvas.value!.getObjects().map((object) => {
-      const { id, type, name, order } = object.get('ts') as LayerProps
-      return {
-        id,
-        type,
-        name,
-        order,
-        object: object,
-      }
-    })
-  },
-  { deep: true }
-)
+const syncLayers = () => {
+  const objects = canvasStore.objects.value
+  layers.value = objects.map((object) => {
+    const { id, type, name, order } = object.get('ts') as LayerProps
+    return {
+      id,
+      type,
+      name,
+      order,
+      object: object,
+    }
+  })
+}
+
+watch(canvasStore.objects, syncLayers)
+onMounted(() => {
+  events.on('canvas:mounted', syncLayers)
+  events.on('canvas:rendered', syncLayers)
+})
+
 </script>
 
 <template>

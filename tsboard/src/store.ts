@@ -1,23 +1,23 @@
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { Canvas, Object } from 'fabric'
 
-export const useImagesStore = defineStore('images', () => {
-  const current = ref(0)
-  const list = ref<string[]>([])
-
-  const currentImage = computed(() => {
-    return list.value[current.value]
-  })
-
-  return { current, list, currentImage }
+const images = reactive({
+  current: 0,
+  list: [] as string[],
 })
 
-export const useCanvasStore = defineStore('canvas', () => {
-  const canvas = ref<Canvas>()
-  const objects = computed(() => {
-    return canvas.value?._objects as Object[]
-  })
+export const useImages = () => {
+  const currentImage = computed(() => images.list[images.current])
+  return {
+    images,
+    currentImage,
+  }
+}
+
+const canvas = ref<Canvas>()
+
+export const useCanvas = () => {
+  const objects = computed(() => canvas.value?._objects as Object[])
 
   return { canvas, objects }
-})
+}

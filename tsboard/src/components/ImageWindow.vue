@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
 import { Canvas, Image, Rect, Circle, Text, Group } from 'fabric'
 import { inferenceYoloDetection } from '../libs/inferenceOnnx'
 import { orderTextBoxes } from '../libs/manga'
-import { useImagesStore, useCanvasStore } from '../store'
+import { useImages, useCanvas } from '../store'
 import { uid } from '../libs/uid'
-import { LayerProps } from '../tschan'
+import type { LayerProps } from '../tschan'
+import events from '../events'
 
-const imagesStore = useImagesStore()
-const canvasStore = useCanvasStore()
-const { canvas } = storeToRefs(canvasStore)
-const { currentImage } = storeToRefs(imagesStore)
+const imagesStore = useImages()
+const currentImage = imagesStore.currentImage
+
+// avoid using canvas from the store directly to avoid reactivity
+// otherwise the canvas event binding will be lost
+const canvasStore = useCanvas()
 
 const fontScaleRatio = computed(() => Math.max(1, image.height / 1080))
 
@@ -19,6 +21,8 @@ const image = reactive({
   width: 0,
   height: 0,
 })
+
+let canvas: Canvas
 
 const canvasWindow = ref<HTMLDivElement>()
 const canvasNode = ref<HTMLCanvasElement>()
@@ -37,7 +41,7 @@ const zoomAspectRatio = (imageWidth: number, imageHeight: number, zoomFactor?: n
 const setZoomAndTransform = (value?: string | number) => {
   const inputZoom = typeof value == 'string' ? parseFloat(value) / 100 : value
   let [width, height, zoomFactor] = zoomAspectRatio(image.width, image.height, inputZoom)
-  canvas.value!.setDimensions({ width, height }, { cssOnly: true })
+  canvas.setDimensions({ width, height }, { cssOnly: true })
   zoom.value = zoomFactor
 }
 
@@ -69,6 +73,12 @@ const detectBoxes = async (imageSrc: string) => {
       fill: 'transparent',
       opacity: 0.4,
       rx: 4 * fontScaleRatio.value,
+      interactive: true,
+      hasBorders: true,
+      hasControls: true,
+      selectable: true,
+      strokeUniform: true,
+      objectCaching: false,
     })
 
     const circle = new Circle({
@@ -94,11 +104,28 @@ const detectBoxes = async (imageSrc: string) => {
     })
 
     const group = new Group([rect, circle, text], {
-      // lock movement by default until the user clicks on the layer
-      hoverCursor: 'default',
-      interactive: true,
-      selectable: true,
-      hasControls: true,
+      subTargetCheck: true,
+      objectCaching: false,
+      interactive: false,
+      hasBorders: false,
+      hasControls: false,
+    })
+
+    group.on({
+      mouseup: () => {
+        canvas.setActiveObject(rect)
+      },
+    })
+
+    rect.on({
+      scaling: () => {
+        circle.set({ left: rect.left, top: rect.top })
+        text.set({ left: rect.left, top: rect.top })
+      },
+      rotating: () => {
+        circle.set({ left: rect.left, top: rect.top })
+        text.set({ left: rect.left, top: rect.top })
+      },
     })
 
     group.set('ts', <LayerProps>{
@@ -108,35 +135,42 @@ const detectBoxes = async (imageSrc: string) => {
       order: i,
     })
 
-    canvas.value!.add(group)
-    canvas.value!.renderAll()
+    canvas.add(group)
   })
 }
 
 const initCanvas = async (imageSrc: string) => {
-  const img = await Image.fromURL(imageSrc, {}, {})
-  image.width = img.width
-  image.height = img.height
-
-  if (canvas.value) {
-    canvas.value.clear()
-  } else {
-    canvasStore.canvas = new Canvas(canvasNode.value!, {
+  canvas =
+    canvas ||
+    new Canvas(canvasNode.value!, {
       enableRetinaScaling: true,
       selection: true,
       fireRightClick: true,
       stopContextMenu: true,
       controlsAboveOverlay: true,
     })
-  }
+
+  // mount global canvas instance
+  canvasStore.canvas.value = canvas
+  events.emit('canvas:mounted', canvas)
+
+  // events hook
+  canvas.on('after:render', () => events.emit('canvas:rendered', canvas))
+
+  const img = await Image.fromURL(imageSrc, {}, {})
+  image.width = img.width
+  image.height = img.height
+
+  // clears canvas
+  canvas.clear()
 
   // do not change the order of the layers
-  // canvas.value!.preserveObjectStacking = true
-  canvas.value!.backgroundImage = img
-  canvas.value!.setDimensions({ width: image.width, height: image.height }, { backstoreOnly: true })
+  canvas.preserveObjectStacking = true
+  canvas.backgroundImage = img
+  canvas.setDimensions({ width: image.width, height: image.height }, { backstoreOnly: true })
 
   setZoomAndTransform()
-  canvas.value!.renderAll()
+  canvas.renderAll()
 
   await detectBoxes(imageSrc)
 }

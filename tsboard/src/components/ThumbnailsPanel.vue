@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import resizeImage from '../libs/resizeImage'
-import { useImagesStore } from '../store'
+import { useImages } from '../store'
 
-const imagesStore = useImagesStore()
+const imagesStore = useImages()
 
 const emptyImage =
   'data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVQI12NgYAAAAAMAASDVlMcAAAAASUVORK5CYII='
@@ -17,7 +17,7 @@ const imageList = Array.from({ length: 131 }, (_, i) => {
   }
 })
 
-imagesStore.list = imageList.map((image) => image.url)
+imagesStore.images.list = imageList.map((image) => image.url)
 
 const lazyLoadImages = async () => {
   const images = [].slice.call(document.querySelectorAll('img.lazy'))
@@ -49,9 +49,9 @@ onMounted(async () => {
     <div class="flex flex-row flex-wrap justify-stretch my-2 gap-y-2">
       <figure
         v-for="image in imageList"
-        @click="imagesStore.current = image.id"
+        @click="imagesStore.images.current = image.id"
         :key="image.id"
-        :data-active="image.id == imagesStore.current"
+        :data-active="image.id == imagesStore.images.current"
         class="w-24 h-34 m-auto opacity-70 hover:opacity-100 relative box-border data-[active=true]:opacity-100 data-[active=true]:border-2 data-[active=true]:border-blue-500"
       >
         <img draggable="false" :src="emptyImage" :alt="image.name" :data-src="image.url" class="w-24 h-32 object-scale-down lazy" />
