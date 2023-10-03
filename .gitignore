@@ -163,9 +163,12 @@ cython_debug/
 *.onnx
 *.pth
 *.pt
+*.zip
 
 # Traning results
 runs/
 
 # Vite cache
 .vite/
+
+bin/manga-ocr-base

@@ -31,6 +31,7 @@ watch(canvasStore.objects, syncLayers)
 onMounted(() => {
   events.on('canvas:mounted', syncLayers)
   events.on('canvas:rendered', syncLayers)
+  events.on('canvas:ocr', syncLayers)
 })
 </script>
 

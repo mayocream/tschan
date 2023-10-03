@@ -7,6 +7,7 @@ import { useImages, useCanvas } from '../store'
 import { uid } from '../libs/uid'
 import type { LayerProps } from '../tschan'
 import events from '../events'
+import { inferenceMangaOcr } from '../libs/incubator'
 
 const imagesStore = useImages()
 const currentImage = imagesStore.currentImage
@@ -144,6 +145,24 @@ const detectBoxes = async (imageSrc: string) => {
   })
 }
 
+const ocr = async (imageSrc: string) => {
+  // test
+  const bboxes = canvas
+    .getObjects()
+    .filter((obj) => obj.get('ts')?.type == 'textbox')
+    .map((obj) => {
+      const rect = (obj as Group).item(0) as Rect
+      const rectBbox = rect.getBoundingRect(true)
+      const bbox = [rectBbox.left, rectBbox.top, rectBbox.width, rectBbox.height]
+      inferenceMangaOcr(imageSrc, bbox).then((text) => {
+        const ts = obj.get('ts')
+        ts.name = text
+        obj.set('ts', ts)
+        events.emit('canvas:ocr')
+      })
+    })
+}
+
 const initCanvas = async (imageSrc: string) => {
   canvas =
     canvas ||
@@ -178,6 +197,7 @@ const initCanvas = async (imageSrc: string) => {
   canvas.renderAll()
 
   await detectBoxes(imageSrc)
+  await ocr(imageSrc)
 }
 
 watch(currentImage, async () => {
