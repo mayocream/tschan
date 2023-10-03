@@ -73,12 +73,11 @@ const detectBoxes = async (imageSrc: string) => {
       fill: 'transparent',
       opacity: 0.4,
       rx: 4 * fontScaleRatio.value,
-      interactive: true,
-      hasBorders: true,
-      hasControls: true,
-      selectable: true,
       strokeUniform: true,
-      objectCaching: false,
+      cornerColor: 'rgba(0,0,0,0.5)',
+      cornerStrokeColor: 'rgba(0,0,0,0.5)',
+      borderColor: 'rgba(0,0,0,0.5)',
+      cornerSize: 8 * fontScaleRatio.value,
     })
 
     const circle = new Circle({
@@ -104,16 +103,22 @@ const detectBoxes = async (imageSrc: string) => {
     })
 
     const group = new Group([rect, circle, text], {
+      // allow to select rect
       subTargetCheck: true,
+      // disable caching for this group
       objectCaching: false,
       interactive: false,
       hasBorders: false,
       hasControls: false,
+      activeOn: 'down',
     })
 
     group.on({
       mouseup: () => {
+        // set rect as active object
         canvas.setActiveObject(rect)
+        // draw controls on active object
+        canvas.drawControls(canvas.getContext())
       },
     })
 

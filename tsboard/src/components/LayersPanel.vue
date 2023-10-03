@@ -3,7 +3,7 @@ import type { Object } from 'fabric'
 import type { LayerProps } from '../tschan'
 import { useCanvas } from '../store'
 import { onMounted, ref, watch } from 'vue'
-import events from '../events';
+import events from '../events'
 
 const canvasStore = useCanvas()
 
@@ -32,7 +32,6 @@ onMounted(() => {
   events.on('canvas:mounted', syncLayers)
   events.on('canvas:rendered', syncLayers)
 })
-
 </script>
 
 <template>

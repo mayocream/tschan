@@ -159,10 +159,13 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-.onnx
-.pth
-.pt
+# PyTorch / Onnx models
+*.onnx
+*.pth
+*.pt
 
+# Traning results
 runs/
 
+# Vite cache
 .vite/

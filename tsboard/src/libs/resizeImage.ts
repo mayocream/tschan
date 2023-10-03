@@ -1,3 +1,7 @@
+/**
+ * Resize image with aspect ratio
+ * Retina display support
+ */
 export default async function resizeImage(imageSrc: string, maxWidth: number, maxHeight: number): Promise<Blob> {
   // Fetch image as blob
   const response = await fetch(imageSrc)
@@ -32,9 +36,14 @@ export default async function resizeImage(imageSrc: string, maxWidth: number, ma
   // Convert canvas to blob
   const resizedBlob = await offscreenCanvas.convertToBlob()
 
+  // the `ctx` and `offscreenCanvas` will be garbage collected
+
   return resizedBlob
 }
 
+/**
+  * Resize image without aspect ratio
+ */
 export async function resizeImageData(imageSrc: string, width: number, height: number): Promise<ImageData> {
   // Fetch image as blob
   const response = await fetch(imageSrc)

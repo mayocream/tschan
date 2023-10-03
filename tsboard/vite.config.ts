@@ -12,6 +12,15 @@ export default defineConfig({
           src: 'node_modules/onnxruntime-web/dist/*.wasm',
           dest: '.',
         },
+        {
+          src: '../bin/yolov8n.onnx',
+          dest: 'models',
+        },
+        // for debugging
+        {
+          src: '../datasets/bluearchive_comics/images',
+          dest: 'samples'
+        }
       ],
     }),
   ],

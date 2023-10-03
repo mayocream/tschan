@@ -22,6 +22,7 @@ imagesStore.images.list = imageList.map((image) => image.url)
 const lazyLoadImages = async () => {
   const images = [].slice.call(document.querySelectorAll('img.lazy'))
 
+  // Dynamic resize thumbnail images to improve performance
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(async (entry) => {
       if (entry.isIntersecting) {
@@ -54,7 +55,13 @@ onMounted(async () => {
         :data-active="image.id == imagesStore.images.current"
         class="w-24 h-34 m-auto opacity-70 hover:opacity-100 relative box-border data-[active=true]:opacity-100 data-[active=true]:border-2 data-[active=true]:border-blue-500"
       >
-        <img draggable="false" :src="emptyImage" :alt="image.name" :data-src="image.url" class="w-24 h-32 object-scale-down lazy" />
+        <img
+          draggable="false"
+          :src="emptyImage"
+          :alt="image.name"
+          :data-src="image.url"
+          class="w-24 h-32 object-scale-down lazy"
+        />
         <figcaption
           class="text-[.8rem] truncate select-none text-center text-sm absolute bottom-0 w-full bg-[rgba(0,0,0,0.7)] text-white"
         >
