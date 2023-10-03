@@ -1,0 +1,7 @@
+fugashi
+jaconv
+numpy
+Pillow>=10.0.0
+torch>=1.0
+transformers>=4.25.0
+unidic_lite
