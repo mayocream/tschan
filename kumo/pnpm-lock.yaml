@@ -8,9 +8,18 @@ dependencies:
   '@tsndr/cloudflare-worker-jwt':
     specifier: ^2.2.5
     version: 2.2.5
+  '@types/cookie':
+    specifier: ^0.5.2
+    version: 0.5.2
+  cookie:
+    specifier: ^0.5.0
+    version: 0.5.0
   ulid-workers:
     specifier: ^2.1.0
     version: 2.1.0
+  zod:
+    specifier: ^3.22.4
+    version: 3.22.4
 
 devDependencies:
   '@cloudflare/workers-types':
@@ -308,6 +317,10 @@ packages:
     resolution: {integrity: sha512-zK177o49c09sa8yEp2/OPfyh+I/SHY/SZ9kxYQC33F8PotrrZgJjY4X3yqu4BFX4lC7RYI1tSXBDQP9Yo9p6/w==}
     dev: false
 
+  /@types/cookie@0.5.2:
+    resolution: {integrity: sha512-DBpRoJGKJZn7RY92dPrgoMew8xCWc2P71beqsjyhEI/Ds9mOyVmBwtekyfhpwFIVt1WrxTonFifiOZ62V8CnNA==}
+    dev: false
+
   /acorn-walk@8.2.0:
     resolution: {integrity: sha512-k+iyHEuPgSw6SbuDpGQM+06HQUa04DZ3o+F6CSzXMvvI5KMvnaEqXe+YVe555R9nn6GPt404fos4wcgpw12SDA==}
     engines: {node: '>=0.4.0'}
@@ -380,7 +393,6 @@ packages:
   /cookie@0.5.0:
     resolution: {integrity: sha512-YZ3GUyn/o8gfKJlnlX7g7xq4gyO6OSuhGPKaaGssGB2qgDUS0gPgtTvoyZLTt9Ab6dC4hfc9dV5arkvc/OCmrw==}
     engines: {node: '>= 0.6'}
-    dev: true
 
   /data-uri-to-buffer@2.0.2:
     resolution: {integrity: sha512-ND9qDTLc6diwj+Xe5cdAgVTbLVdXbtxTJRXRhli8Mowuaan+0EJOtdqJ0QCHNSSPyoXGx9HX2/VMnKeC34AChA==}
@@ -530,7 +542,7 @@ packages:
       workerd: 1.20230922.0
       ws: 8.14.2
       youch: 3.3.2
-      zod: 3.22.3
+      zod: 3.22.4
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -731,6 +743,5 @@ packages:
       stacktracey: 2.1.8
     dev: true
 
-  /zod@3.22.3:
-    resolution: {integrity: sha512-EjIevzuJRiRPbVH4mGc8nApb/lVLKVpmUhAaR5R5doKGfAnGJ6Gr3CViAVjP+4FWSxCsybeWQdcgCtbX+7oZug==}
-    dev: true
+  /zod@3.22.4:
+    resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}

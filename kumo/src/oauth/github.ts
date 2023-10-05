@@ -5,40 +5,38 @@ import jwt from '@tsndr/cloudflare-worker-jwt'
 import type { UserMetadata } from '../kumo'
 import { KumoUserAgent } from '../kumo'
 import ulid from '../lib/ulid'
+import { parse } from 'cookie'
 
 /**
  * Route: /oauth/github
  * GET: redirect to GitHub OAuth login page
- * POST:
+ * GET + code:
  * 1. exchange code for access token
  * 2. get user info
  * 3. store user info in KV
  * 4. generate JWT
- * 5. return JWT
+ * 5. redirect to `redirect_uri`
  */
 export default async function (request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-  // handle CORS pre-flight request
-  if (request.method == 'OPTIONS') {
+	if (request.method != 'GET') {
+		return new Response(null, { status: 405 })
+	}
+
+  // redirect GET requests to the OAuth login page on github.com
+  // debug: http://127.0.0.1:8787/oauth/github?redirect_uri=http://127.0.0.1:8787/user
+  if (!request.url.includes('code')) {
+    const redirect_uri = new URL(request.url).searchParams.get('redirect_uri') ?? request.headers.get('referer') ?? '/'
+    const callback_uri = request.url.split('?')[0]
     return new Response(null, {
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'set-cookie': `kumo-redirect=${redirect_uri}; HttpOnly; Path=/; Max-Age=60`,
+        location: `https://github.com/login/oauth/authorize?client_id=${env.GITHUB_CLIENT_ID}&redirect_uri=${callback_uri}`,
       },
+      status: 302,
     })
   }
 
-  // redirect GET requests to the OAuth login page on github.com
-  // debug: http://127.0.0.1:8787/oauth/github?redirect_uri=http://127.0.0.1:8787
-  if (request.method == 'GET' && !request.url.includes('code')) {
-    // const redirectUri = new URL(request.url).searchParams.get('redirect_uri') ?? request.headers.get('referer')
-    const redirectUri = 'http://127.0.0.1:8787/oauth/github'
-    return Response.redirect(`https://github.com/login/oauth/authorize?client_id=${env.GITHUB_CLIENT_ID}&redirect_uri=${redirectUri}`, 302)
-  }
-
   // login after user approves access
-  // debug:
-  //   curl -X POST http://127.0.0.1:8787/oauth/github -d '{"code": "99fdf1013a4853e4d1f4"}' -H 'content-type: application/json'
   const code = new URL(request.url).searchParams.get('code')
 
   // 1. exchange code for access token
@@ -104,6 +102,20 @@ export default async function (request: Request, env: Env, ctx: ExecutionContext
   // 4. generate JWT
   const token = await jwt.sign({ ...metadata }, env.JWT_SECRET)
 
-  // 5. return JWT
-  return new Response(JSON.stringify({ token: token }), { status: 201 })
+  // 4.x) set a magical client-read-only cookie for cross-domain access
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#schemeful_same-site
+  // the client needs to use the token in HTTP header `Authorization: Bearer ${token}`
+  const domain =
+    request.url.includes('127.0.0.1') || request.url.includes('::1')
+      ? new URL(request.url).hostname
+      : new URL(request.url).hostname.split('.').slice(-2).join('.')
+
+  // 5. redirect to `redirect_uri`
+  return new Response(null, {
+    headers: {
+      'set-cookie': `kumo-token=${token}; Domain=.${domain}; Path=/; SameSite=Strict; Max-Age=604800`,
+      location: request.headers.get('cookie') ? parse(request.headers.get('cookie')!)['kumo-redirect'] : '/',
+    },
+    status: 302,
+  })
 }
