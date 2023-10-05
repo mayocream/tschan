@@ -1,6 +1,6 @@
 import jwt from '@tsndr/cloudflare-worker-jwt'
 import { parse } from 'cookie'
-import { Roles, type KumoRequest, type UserMetadata, type RoleType } from '../kumo'
+import { Roles, type KumoRequest, type UserMetadata, type RoleType } from './kumo'
 import type { RouteHandler } from 'itty-router'
 
 export async function authorization(request: KumoRequest, env: Env, ctx: ExecutionContext) {

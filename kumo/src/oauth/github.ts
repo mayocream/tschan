@@ -6,6 +6,7 @@ import type { UserMetadata } from '../kumo'
 import { KumoUserAgent } from '../kumo'
 import ulid from '../lib/ulid'
 import { parse } from 'cookie'
+import { json } from 'itty-router'
 
 /**
  * Route: /oauth/github
@@ -18,9 +19,9 @@ import { parse } from 'cookie'
  * 5. redirect to `redirect_uri`
  */
 export default async function (request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-	if (request.method != 'GET') {
-		return new Response(null, { status: 405 })
-	}
+  if (request.method != 'GET') {
+    return new Response(null, { status: 405 })
+  }
 
   // redirect GET requests to the OAuth login page on github.com
   // debug: http://127.0.0.1:8787/oauth/github?redirect_uri=http://127.0.0.1:8787/user
@@ -52,7 +53,7 @@ export default async function (request: Request, env: Env, ctx: ExecutionContext
   })
   if (!response.ok) {
     console.log('user failed to login to github: ', await response.text())
-    return new Response(JSON.stringify({ error: 'login to github' }), { status: 401 })
+    return json({ error: 'failed to login to github' }, { status: 401 })
   }
 
   const result = await response.json<any>()
@@ -68,7 +69,7 @@ export default async function (request: Request, env: Env, ctx: ExecutionContext
   })
   if (!userResponse.ok) {
     console.log('failed to get user info from github: ', await userResponse.text())
-    return new Response(JSON.stringify({ error: 'failed to get user info from github' }), { status: 401 })
+    return json({ error: 'failed to get user info from github' }, { status: 401 })
   }
 
   const userInfo = await userResponse.json<any>()

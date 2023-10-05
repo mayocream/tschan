@@ -1,7 +1,9 @@
-import { error, Router, createCors, type RouteHandler } from 'itty-router'
+import { error, Router, createCors, type RouteHandler, json } from 'itty-router'
 import OAuthGitHub from './oauth/github'
 import type { KumoRequest } from './kumo'
-import { authorization } from './lib/auth'
+import { authorization } from './auth'
+import translation from './translation'
+import ocr from './ocr'
 
 const { preflight, corsify } = createCors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -13,8 +15,10 @@ const router = Router()
 
 router
   .all('*', preflight, authorization as RouteHandler)
-  .get('/user', (request) => new Response(JSON.stringify({ user: request.user, role: request.role })))
+  .get('/user', (request) => json({ user: request.user, role: request.role }))
   .all('/oauth/github', OAuthGitHub)
+  .all('/translate', translation)
+  .all('/ocr', ocr)
   .all('*', () => error(404))
 
 export default {

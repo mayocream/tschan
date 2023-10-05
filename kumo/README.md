@@ -26,6 +26,7 @@ Create `.dev.vars` file in the root directory with the following content:
 GITHUB_CLIENT_ID = "<secret>"
 GITHUB_CLIENT_SECRET = "<secret>"
 JWT_SECRET = "<secret>"
+HUGGING_FACE_API_TOKEN = "<secret>"
 ```
 
 Replace `<secret>` with the real secrets.
