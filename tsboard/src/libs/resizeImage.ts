@@ -2,11 +2,8 @@
  * Resize image with aspect ratio
  * Retina display support
  */
-export default async function resizeImage(imageSrc: string, maxWidth: number, maxHeight: number): Promise<Blob> {
-  // Fetch image as blob
-  const response = await fetch(imageSrc)
-  const blob = await response.blob()
-  const imageBitmap = await createImageBitmap(blob)
+export default async function resizeImage(image: Blob, maxWidth: number, maxHeight: number): Promise<Blob> {
+  const imageBitmap = await createImageBitmap(image)
 
   // Calculate the aspect ratio
   const aspectRatio = imageBitmap.width / imageBitmap.height
@@ -44,11 +41,8 @@ export default async function resizeImage(imageSrc: string, maxWidth: number, ma
 /**
   * Resize image without aspect ratio
  */
-export async function resizeImageData(imageSrc: string, width: number, height: number): Promise<ImageData> {
-  // Fetch image as blob
-  const response = await fetch(imageSrc)
-  const blob = await response.blob()
-  const imageBitmap = await createImageBitmap(blob)
+export async function resizeImageData(image: Blob, width: number, height: number): Promise<ImageData> {
+  const imageBitmap = await createImageBitmap(image)
 
   // Create offscreen canvas
   const offscreenCanvas = new OffscreenCanvas(width, height)
@@ -61,4 +55,17 @@ export async function resizeImageData(imageSrc: string, width: number, height: n
   const data = ctx!.getImageData(0, 0, width, height)
 
   return data
+}
+
+export async function resizeImageBlob(image: Blob, width: number, height: number): Promise<Blob> {
+  const imageBitmap = await createImageBitmap(image)
+
+  // Create offscreen canvas
+  const offscreenCanvas = new OffscreenCanvas(width, height)
+  const ctx = offscreenCanvas.getContext('2d')
+
+  // Draw and resize
+  ctx!.drawImage(imageBitmap, 0, 0, width, height)
+
+  return await offscreenCanvas.convertToBlob()
 }

@@ -2,18 +2,19 @@ import { ref, reactive, computed } from 'vue'
 import { Canvas, Object } from 'fabric'
 
 const images = reactive({
-  current: 0,
-  list: [] as string[],
+  current: undefined as File | undefined,
+  list: [] as File[],
 })
 
 export const useImages = () => {
-  const currentImage = computed(() => images.list[images.current])
+  const currentImage = computed(() => images.current)
   return {
     images,
     currentImage,
   }
 }
 
+// this canvas lost DOM reference after being added to the store
 const canvas = ref<Canvas>()
 
 export const useCanvas = () => {

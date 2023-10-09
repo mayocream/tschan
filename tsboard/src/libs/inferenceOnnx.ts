@@ -4,8 +4,8 @@ import { Box, processOutput } from './yolov8'
 
 const Yolov8Session = await InferenceSession.create('/models/yolov8n.onnx')
 
-export async function inferenceYoloDetection(url: string): Promise<Box[]> {
-  const imageTensor = await getImageTensorFromUrl(url)
+export async function inferenceYoloDetection(blob: Blob): Promise<Box[]> {
+  const imageTensor = await getImageTensorFromUrl(blob)
   const [predictions, inferenceTime] = await runYoloModel(imageTensor)
 
   const start = new Date()
@@ -18,8 +18,8 @@ export async function inferenceYoloDetection(url: string): Promise<Box[]> {
   return boxes
 }
 
-const getImageTensorFromUrl = async (url: string, dims: number[] = [1, 3, 640, 640]): Promise<Tensor> => {
-  const image = await resizeImageData(url, dims[2], dims[3])
+const getImageTensorFromUrl = async (blob: Blob, dims: number[] = [1, 3, 640, 640]): Promise<Tensor> => {
+  const image = await resizeImageData(blob, dims[2], dims[3])
   const imageTensor = await Tensor.fromImage(image)
   return imageTensor
 }

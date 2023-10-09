@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { Canvas, Image, Rect, Circle, Text, Group } from 'fabric'
-import { inferenceYoloDetection } from '../libs/inferenceOnnx'
-import { orderTextBoxes } from '../libs/manga'
-import { useImages, useCanvas } from '../store'
-import { uid } from '../libs/uid'
-import type { LayerProps } from '../tschan'
+import { Canvas, Image } from 'fabric'
+import { useImages, useCanvas } from '../state'
 import events from '../events'
-import { inferenceMangaOcr } from '../libs/incubator'
+import { storeCanvas, restoreCanvas, initialDetectAndOcr } from '../helpers/canvas'
+import { readFileAsBlob } from '../libs/storage'
 
 const imagesStore = useImages()
 const currentImage = imagesStore.currentImage
@@ -15,8 +12,6 @@ const currentImage = imagesStore.currentImage
 // avoid using canvas from the store directly to avoid reactivity
 // otherwise the canvas event binding will be lost
 const canvasStore = useCanvas()
-
-const fontScaleRatio = computed(() => Math.max(1, image.height / 1080))
 
 const image = reactive({
   width: 0,
@@ -56,114 +51,9 @@ const handlePanZoom = (e: WheelEvent) => {
   setZoomAndTransform(zoomFactor)
 }
 
-const detectBoxes = async (imageSrc: string) => {
-  const boxes = await inferenceYoloDetection(imageSrc)
-  const textBoxes = orderTextBoxes(
-    boxes.filter((box) => box[4] == 'frame'),
-    boxes.filter((box) => box[4] == 'text')
-  )
+const initCanvas = async (imageFile: File) => {
+  if (!imageFile) return
 
-  textBoxes.forEach((box, i) => {
-    const rect = new Rect({
-      left: box[0] * image.width,
-      top: box[1] * image.height,
-      width: box[2] * image.width - box[0] * image.width,
-      height: box[3] * image.height - box[1] * image.height,
-      stroke: 'red',
-      strokeWidth: 2 * fontScaleRatio.value,
-      fill: 'transparent',
-      opacity: 0.4,
-      rx: 4 * fontScaleRatio.value,
-      strokeUniform: true,
-      cornerColor: 'rgba(0,0,0,0.5)',
-      cornerStrokeColor: 'rgba(0,0,0,0.5)',
-      borderColor: 'rgba(0,0,0,0.5)',
-      cornerSize: 8 * fontScaleRatio.value,
-    })
-
-    const circle = new Circle({
-      radius: 12 * fontScaleRatio.value,
-      fill: 'red',
-      left: rect.left,
-      top: rect.top,
-      originX: 'center',
-      originY: 'center',
-      opacity: 0.7,
-    })
-
-    const text = new Text(`${i + 1}`, {
-      fontSize: 16 * fontScaleRatio.value,
-      fontFamily: 'system-ui, sans-serif',
-      fontWeight: 'bold',
-      fill: 'white',
-      left: circle.left,
-      top: circle.top,
-      originX: 'center',
-      originY: 'center',
-      textAlign: 'center',
-    })
-
-    const group = new Group([rect, circle, text], {
-      // allow to select rect
-      subTargetCheck: true,
-      // disable caching for this group
-      objectCaching: false,
-      interactive: false,
-      hasBorders: false,
-      hasControls: false,
-      activeOn: 'down',
-    })
-
-    group.on({
-      mouseup: () => {
-        // set rect as active object
-        canvas.setActiveObject(rect)
-        // draw controls on active object
-        canvas.drawControls(canvas.getContext())
-      },
-    })
-
-    rect.on({
-      scaling: () => {
-        circle.set({ left: rect.left, top: rect.top })
-        text.set({ left: rect.left, top: rect.top })
-      },
-      rotating: () => {
-        circle.set({ left: rect.left, top: rect.top })
-        text.set({ left: rect.left, top: rect.top })
-      },
-    })
-
-    group.set('ts', <LayerProps>{
-      id: uid(),
-      type: 'textbox',
-      name: `Text...`,
-      order: i,
-    })
-
-    canvas.add(group)
-  })
-}
-
-const ocr = async (imageSrc: string) => {
-  // test
-  const bboxes = canvas
-    .getObjects()
-    .filter((obj) => obj.get('ts')?.type == 'textbox')
-    .map((obj) => {
-      const rect = (obj as Group).item(0) as Rect
-      const rectBbox = rect.getBoundingRect(true)
-      const bbox = [rectBbox.left, rectBbox.top, rectBbox.width, rectBbox.height]
-      inferenceMangaOcr(imageSrc, bbox).then((text) => {
-        const ts = obj.get('ts')
-        ts.name = text
-        obj.set('ts', ts)
-        events.emit('canvas:ocr')
-      })
-    })
-}
-
-const initCanvas = async (imageSrc: string) => {
   canvas =
     canvas ||
     new Canvas(canvasNode.value!, {
@@ -181,7 +71,8 @@ const initCanvas = async (imageSrc: string) => {
   // events hook
   canvas.on('after:render', () => events.emit('canvas:rendered', canvas))
 
-  const img = await Image.fromURL(imageSrc, {}, {})
+  const blob = await readFileAsBlob(imageFile)
+  const img = await Image.fromURL(URL.createObjectURL(blob), {}, {})
   image.width = img.width
   image.height = img.height
 
@@ -194,19 +85,29 @@ const initCanvas = async (imageSrc: string) => {
   canvas.setDimensions({ width: image.width, height: image.height }, { backstoreOnly: true })
 
   setZoomAndTransform()
-  canvas.renderAll()
 
-  await detectBoxes(imageSrc)
-  await ocr(imageSrc)
+  if (!await restoreCanvas(canvas)) {
+    await initialDetectAndOcr(canvas)
+  }
+
+  canvas.renderAll()
 }
 
 watch(currentImage, async () => {
   if (!currentImage) return
-  await initCanvas(currentImage.value)
+  await initCanvas(currentImage.value!)
 })
 
 onMounted(async () => {
-  await initCanvas(currentImage.value)
+  if (!currentImage) return
+  await initCanvas(currentImage.value!)
+
+  events.on('canvas:rendered', () => {
+    storeCanvas()
+  })
+  events.on('canvas:initialDetectAndOcr', async () => {
+    await initialDetectAndOcr(canvas)
+  })
 })
 </script>
 
@@ -227,20 +128,12 @@ onMounted(async () => {
       @keydown.enter=";($event.target as HTMLInputElement).blur()"
     />
     <!-- @vue-skip -->
-    <span class="text-[12px] px-5 bg-black">{{
-      `${image.width} px x ${image.height} px (${window.devicePixelRatio} dppx)`
-    }}</span>
+    <span class="text-[12px] px-5 bg-black">{{ `${image.width} px x ${image.height} px (${window.devicePixelRatio} dppx)` }}</span>
   </div>
 </template>
 
 <style scoped>
 .preview {
-  background-image: repeating-linear-gradient(
-    45deg,
-    hsl(var(--b1)),
-    hsl(var(--b1)) 13px,
-    hsl(var(--b2)) 13px,
-    hsl(var(--b2)) 14px
-  );
+  background-image: repeating-linear-gradient(45deg, hsl(var(--b1)), hsl(var(--b1)) 13px, hsl(var(--b2)) 13px, hsl(var(--b2)) 14px);
 }
 </style>

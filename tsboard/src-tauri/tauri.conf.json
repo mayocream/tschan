@@ -67,7 +67,8 @@
         "resizable": true,
         "title": "tsboard",
         "width": 800,
-        "minWidth": 800
+        "minWidth": 800,
+        "maximized": true
       }
     ]
   }

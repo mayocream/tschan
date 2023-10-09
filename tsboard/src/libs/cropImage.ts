@@ -1,21 +1,6 @@
-interface Cache {
-  [key: string]: ImageBitmap
-}
-
-const cache: Cache = {}
-
 // ref: https://stackoverflow.com/questions/26015497/how-to-resize-then-crop-an-image-with-canvas
-export async function cropImage(imageSrc: string, bbox: number[]): Promise<Blob> {
-  let imageBitmap: ImageBitmap = cache[imageSrc]
-
-  if (!imageBitmap) {
-    // Fetch image as blob
-    const response = await fetch(imageSrc)
-    const blob = await response.blob()
-    imageBitmap = await createImageBitmap(blob)
-    cache[imageSrc] = imageBitmap
-  }
-
+export async function cropImage(blob: Blob, bbox: number[]): Promise<Blob> {
+  const imageBitmap = await createImageBitmap(blob)
   // Create offscreen canvas
   const offscreenCanvas = new OffscreenCanvas(bbox[2], bbox[3])
   const ctx = offscreenCanvas.getContext('2d')

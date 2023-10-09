@@ -60,3 +60,12 @@ textarea {
 .ltr {
   direction: ltr;
 }
+
+@font-face {
+  font-family: 'MadokaRunes';
+  src: url('/MadokaRunes-2.0.ttf');
+}
+
+.madoka-runes {
+  font-family: 'MadokaRunes';
+}
