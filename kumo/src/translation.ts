@@ -31,7 +31,7 @@ export default async function (request: KumoRequest, env: Env, ctx: ExecutionCon
         text,
         source_lang: 'japanese',
         target_lang: 'chinese',
-      }).then((output) => output?.result?.translated_text)
+      }).then((output) => output?.result?.translated_text?.translated_text)
     })
   )
 
