@@ -11,6 +11,7 @@ The editor is available at [https://ts.e.ki](https://ts.e.ki).
 `tsboard` is written in TypeScript, using [Vue3](https://vuejs.org/) and [Tailwind CSS](https://tailwindcss.com/).
 Its editor system is based on [fabric.js](http://fabricjs.com/), which uses browser's Canvas API to render the image and text.
 Retina is supported, and the editor is optimized for high resolution display.
+[File System API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API) is used to read and write files on your disk.
 
 A tiny pre-trained object detection model ([YOLOv8](https://docs.ultralytics.com/)) is bundled with the editor, which is used to detect speech bubbles and text lines automatically. The model is exported to the ONNX format, and run in web with [ONNXRuntime](https://onnxruntime.ai/) (WebAssembly backend).
 
@@ -23,14 +24,23 @@ The auto translation feature is powered by [GPT-4](https://openai.com/gpt-4), a 
 
 Note: the editor is still in early development, and may be unstable.
 
-## Desktop Editor
+### Browser Compatibility
+
+> https://vitejs.dev/guide/build.html#browser-compatibility
+
+- Chrome >=87
+- Firefox >=78
+- Safari >=14
+- Edge >=88
+
+## Desktop Editor (WIP)
 
 The desktop version of the editor is available for Windows, macOS and Linux, written with [Tauri](https://tauri.app/) in Rust.
 It is basically a wrapper of the web editor, but with some additional features (maybe).
 
 *Working on bundling the Python server into the desktop version...*
 
-## Photoshop Plugin
+## Photoshop Plugin (WIP)
 
 The Photoshop plugin allows you to import translated text from the editor into Photoshop.
 The plugin is written in [UXP](https://developer.adobe.com/photoshop/uxp/2022/), and available for Photoshop 2021+
