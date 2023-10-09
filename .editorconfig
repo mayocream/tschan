@@ -2,12 +2,13 @@
 root = true
 
 [*.{js,ts,vue}]
-indent_style = tab
-tab_width = 2
+indent_style = space
+indent_size = 2
 end_of_line = lf
 charset = utf-8
-trim_trailing_whitespace = true
-insert_final_newline = true
+trim_trailing_whitespace = false
+insert_final_newline = false
 
-[*.yml]
+[*.{yaml,yml}]
 indent_style = space
+indent_size = 2
