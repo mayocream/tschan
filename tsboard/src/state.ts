@@ -1,4 +1,4 @@
-import { ref, reactive, computed } from 'vue'
+import { shallowRef, reactive, computed } from 'vue'
 import { Canvas, Object } from 'fabric'
 
 const images = reactive({
@@ -14,8 +14,9 @@ export const useImages = () => {
   }
 }
 
-// this canvas lost DOM reference after being added to the store
-const canvas = ref<Canvas>()
+// TODO: support multiple canvas instances?
+// ref: https://stackoverflow.com/questions/74833036/vue3-fabricjs-cannot-resize-edit-objects-created-using-a-reactive-variable-u
+const canvas = shallowRef<Canvas>()
 
 export const useCanvas = () => {
   const objects = computed(() => canvas.value?._objects as Object[])

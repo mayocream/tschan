@@ -35,11 +35,6 @@ export default defineConfig({
           src: '../bin/yolov8n.onnx',
           dest: 'models',
         },
-        // for debugging
-        {
-          src: '../datasets/bluearchive_comics/images',
-          dest: 'samples',
-        },
       ],
     }),
   ],

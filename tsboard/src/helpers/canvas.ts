@@ -1,4 +1,4 @@
-import { Canvas, Circle, Group, Rect, Text } from 'fabric'
+import { Circle, Group, Rect, Text } from 'fabric'
 import { useCanvas, useImages } from '../state'
 import type { Layer, TextBox } from '../tschan'
 import { uid } from '../libs/uid'
@@ -11,8 +11,8 @@ import events from '../events'
 const canvasState = useCanvas()
 const imageState = useImages()
 
-// canvas must not be referenced
-export function drawTextBox(canvas: Canvas, box: TextBox) {
+export function drawTextBox(box: TextBox) {
+  const canvas = canvasState.canvas.value!
   const fontScaleRatio = Math.max(1, canvas.height / 1080)
   const rect = new Rect({
     left: box.x1 * canvas.width,
@@ -94,7 +94,7 @@ export function drawTextBox(canvas: Canvas, box: TextBox) {
   canvas.add(group)
 }
 
-export async function detectTextBoxes(canvas: Canvas) {
+export async function detectTextBoxes() {
   const blob = await readFileAsBlob(imageState.currentImage.value!)
   const boxes = await inferenceYoloDetection(blob)
   const orderedBoxes = orderTextBoxes(
@@ -102,7 +102,7 @@ export async function detectTextBoxes(canvas: Canvas) {
     boxes.filter((box) => box[4] == 'text')
   )
   for (const [i, box] of orderedBoxes.entries()) {
-    drawTextBox(canvas, {
+    drawTextBox({
       x1: box[0],
       y1: box[1],
       x2: box[2],
@@ -152,7 +152,7 @@ export async function storeCanvas() {
   console.log('store canvas data')
 }
 
-export async function restoreCanvas(canvas: Canvas) {
+export async function restoreCanvas() {
   const data = await restoreCanvasData(imageState.currentImage.value!.name)
   if (!data) {
     return false
@@ -166,7 +166,7 @@ export async function restoreCanvas(canvas: Canvas) {
 
   for (const layer of layers) {
     if (layer.type == 'textbox') {
-      drawTextBox(canvas, layer.textbox!)
+      drawTextBox(layer.textbox!)
     }
   }
 
@@ -193,7 +193,7 @@ export async function ocr() {
     })
 }
 
-export async function detectAndOcr(canvas: Canvas) {
+export async function detectAndOcr() {
   const currentImage = imageState.currentImage.value!
   const blob = await readFileAsBlob(currentImage)
   const { blks } = await inferenceComicTextDetectorPlusMangaOcr(blob)
@@ -202,10 +202,8 @@ export async function detectAndOcr(canvas: Canvas) {
   // if the current image is not the same as the image when the request was sent, ignore the result
   if (currentImage.name != imageState.currentImage.value!.name) return
 
-  console.log(blks)
-
   for (const [i, blk] of blks['blocks'].entries()) {
-    drawTextBox(canvas, {
+    drawTextBox({
       x1: blk.box[0] / 1024,
       y1: blk.box[1] / 1024,
       x2: blk.box[2] / 1024,
@@ -218,12 +216,11 @@ export async function detectAndOcr(canvas: Canvas) {
   }
 }
 
-export async function initialDetectAndOcr(canvas: Canvas) {
+export async function initialDetectAndOcr() {
   if (await isIncubatorAvailable) {
-    await detectAndOcr(canvas)
+    await detectAndOcr()
   } else {
-    await detectTextBoxes(canvas)
+    await detectTextBoxes()
     await ocr()
   }
 }
-

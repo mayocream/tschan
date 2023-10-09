@@ -5,6 +5,7 @@ import { useImages, useCanvas } from '../state'
 import events from '../events'
 import { storeCanvas, restoreCanvas, initialDetectAndOcr } from '../helpers/canvas'
 import { readFileAsBlob } from '../libs/storage'
+import { debounce } from '../libs/util'
 
 const imagesStore = useImages()
 const currentImage = imagesStore.currentImage
@@ -86,8 +87,8 @@ const initCanvas = async (imageFile: File) => {
 
   setZoomAndTransform()
 
-  if (!await restoreCanvas(canvas)) {
-    await initialDetectAndOcr(canvas)
+  if (!await restoreCanvas()) {
+    await initialDetectAndOcr()
   }
 
   canvas.renderAll()
@@ -103,10 +104,10 @@ onMounted(async () => {
   await initCanvas(currentImage.value!)
 
   events.on('canvas:rendered', () => {
-    storeCanvas()
+    debounce(storeCanvas, 100)
   })
   events.on('canvas:initialDetectAndOcr', async () => {
-    await initialDetectAndOcr(canvas)
+    await initialDetectAndOcr()
   })
 })
 </script>
