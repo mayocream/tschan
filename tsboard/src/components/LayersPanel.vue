@@ -10,17 +10,12 @@ const layers = ref<Layer[]>([])
 const selected = ref<Layer>()
 
 const syncLayers = () => {
+  console.log('sync layers')
   const objects = canvasStore.objects.value
   if (!objects) return
   layers.value = objects.map((object) => {
-    const { id, type, name, order } = object.get('ts') as Layer
-    return {
-      id,
-      type,
-      name,
-      order,
-      object,
-    }
+    const layer = object.get('ts') as Layer
+    return layer
   })
 }
 
@@ -46,26 +41,36 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col w-[16rem]">
+  <!-- TODO: drag to sort layers? -->
+  <div class="flex flex-col w-[20rem]">
     <div class="flex-1"></div>
-    <div class="flex-1">
-      <div class="flex flex-col">
+    <div class="flex-1 h-[50%] overflow-auto border-t-[.6px] border-base-content">
+      <div class="flex flex-col last:border-b-[0.4px] border-slate-500">
         <div
           v-for="layer in layers"
           :key="layer.id"
           @click="selectLayer(layer as Layer)"
           :data-active="selected?.id == layer.id"
           draggable="true"
-          class="flex cursor-pointer select-none items-center text-sm h-[1.6rem] bg-slate-700 data-[active=true]:bg-slate-500"
+          class="flex cursor-pointer select-none items-center text-sm h-[1.95rem] px-[2px] bg-base-100 data-[active=true]:bg-slate-700 data-[active=true]:border-y-[.4px] data-[active=true]:border-blue-500 border-t-[.4px] border-slate-500"
         >
-          <span class="px-2">{{ layer.order }}</span>
-          <span class="truncate">{{ layer.name }}</span>
+          <span class="material-symbols-outlined text-[.875rem] opacity-[.9]">translate</span>
+          <span class="w-[1.8rem] text-center opacity-[.9]">{{ layer?.textbox?.order }}</span>
+          <span class="truncate inline-block max-w-[16.8rem] text-[.875rem] opacity-[.9]">{{ layer.name }}</span>
         </div>
-        <!-- TODO: svg icons? -->
-        <div class="fixed bottom-0 flex bg-slate-600 h-[1.5rem] w-[16rem] text-center">
-          <div class="ml-auto w-[1.2rem] mr-[0.5rem] cursor-pointer">↑</div>
-          <div class="w-[1.2rem] mr-[0.5rem] cursor-pointer">↓</div>
-          <div @click="deleteLayer" class="w-[1.2rem] mr-[0.5rem] cursor-pointer">✕</div>
+        <div class="fixed bottom-0 flex bg-slate-800 h-[1.25rem] w-[20rem] text-center text-slate-400">
+          <div class="ml-auto w-[1.2rem] mr-[0.7rem] cursor-pointer material-symbols-outlined text-[1.25rem] hover:text-slate-300 icon">
+            arrow_upward
+          </div>
+          <div class="w-[1.2rem] mr-[0.7rem] cursor-pointer material-symbols-outlined text-[1.25rem] hover:text-slate-300 icon">
+            arrow_downward
+          </div>
+          <div
+            @click="deleteLayer"
+            class="w-[1.2rem] mr-[0.5rem] cursor-pointer material-symbols-outlined text-[1.25rem] hover:text-slate-300 icon"
+          >
+            delete
+          </div>
         </div>
       </div>
     </div>

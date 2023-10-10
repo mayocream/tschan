@@ -1,4 +1,5 @@
-import { Circle, Group, Rect, Text } from 'fabric'
+import * as fabric from 'fabric'
+import { Circle, Group, Object, Rect, Text, Textbox } from 'fabric'
 import { useCanvas, useImages } from '../state'
 import type { Layer, TextBox } from '../tschan'
 import { uid } from '../libs/uid'
@@ -8,17 +9,21 @@ import { readFileAsBlob, restoreCanvasData, storeCanvasData } from '../libs/stor
 import { inferenceMangaOcrHuggingFace, inferenceComicTextDetectorPlusMangaOcr, isIncubatorAvailable } from '../libs/incubator'
 import events from '../events'
 
+const { makeBoundingBoxFromPoints } = fabric.util
+
 const canvasState = useCanvas()
 const imageState = useImages()
 
-export function drawTextBox(box: TextBox) {
+export function drawTextBox(box: TextBox, index: number) {
   const canvas = canvasState.canvas.value!
   const fontScaleRatio = Math.max(1, canvas.height / 1080)
+
+  // TODO: combine 3 of them into one custom object
   const rect = new Rect({
     left: box.x1 * canvas.width,
     top: box.y1 * canvas.height,
-    width: box.x2 * canvas.width - box.x1 * canvas.width,
-    height: box.y2 * canvas.height - box.y1 * canvas.height,
+    width: (box.x2 - box.x1) * canvas.width,
+    height: (box.y2 - box.y1) * canvas.height,
     stroke: 'red',
     strokeWidth: 2 * fontScaleRatio,
     fill: 'transparent',
@@ -41,7 +46,7 @@ export function drawTextBox(box: TextBox) {
     opacity: 0.7,
   })
 
-  const text = new Text(String(box.index), {
+  const text = new Text(String(box.order), {
     fontSize: 16 * fontScaleRatio,
     fontFamily: 'system-ui, sans-serif',
     fontWeight: 'bold',
@@ -87,11 +92,36 @@ export function drawTextBox(box: TextBox) {
   group.set('ts', <Layer>{
     id: uid(),
     type: 'textbox',
-    name: box.name,
-    order: box.index,
+    name: box.text,
+    index: index,
+    textbox: box,
   })
 
   canvas.add(group)
+}
+
+export function orderTextBoxesByIndex() {
+  const canvas = canvasState.canvas.value!
+  const objects = canvas.getObjects()
+
+  objects
+    .filter((obj) => obj.get('ts')?.type == 'textbox')
+    .sort((a, b) => a.get('ts')!.order - b.get('ts')!.order)
+    .forEach((obj, i) => {
+      const text = obj.item(2) as Text
+      text.set('text', String(i + 1))
+    })
+}
+
+export function moveTo(object: Object, index: number) {
+  if (!object.isType('group')) return
+  const group = object as Group
+  const canvas = canvasState.canvas.value!
+
+  canvas.moveObjectTo(group, index)
+
+  const text = group.item(2) as Text
+  text.set('text', String(group.get('ts')?.order))
 }
 
 export async function detectTextBoxes() {
@@ -108,29 +138,33 @@ export async function detectTextBoxes() {
       x2: box[2],
       y2: box[3],
       text: '',
-      index: i + 1, // index starts from 1
+      order: i + 1, // index starts from 1
       name: `Text...`,
       direction: 'vertical',
-    })
+    }, i)
   }
 }
 
 export async function storeCanvas() {
   const canvas = canvasState.canvas.value!
   const objects = canvas.getObjects()
-
   const layers: Layer[] = []
-
   for (const object of objects) {
     const layer = object.get('ts') as Layer
     if (layer.type == 'textbox') {
       const group = object as Group
       const rect = group.item(0) as Rect
-      const bbox = rect.getBoundingRect()
+      // rect is relative to group
+      // https://stackoverflow.com/questions/29829475/how-to-get-the-canvas-relative-position-of-an-object-that-is-in-a-group
+      const bbox = {
+        left: rect.left + rect.group!.left + rect.group!.width / 2,
+        top: rect.top + rect.group!.top + rect.group!.height / 2,
+        width: rect.width,
+        height: rect.height,
+      }
       const textbox: TextBox = {
-        index: layer.order,
-        name: layer.name,
-        text: '',
+        order: layer.index + 1,
+        text: layer?.textbox?.text || '',
         x1: bbox.left / canvas.width,
         y1: bbox.top / canvas.height,
         x2: (bbox.left + bbox.width) / canvas.width,
@@ -149,7 +183,7 @@ export async function storeCanvas() {
   const data = JSON.stringify(layers)
   await storeCanvasData(imageState.currentImage.value!.name, data)
 
-  console.log('store canvas data')
+  console.log('store canvas data', layers)
 }
 
 export async function restoreCanvas() {
@@ -160,13 +194,14 @@ export async function restoreCanvas() {
 
   const layers = JSON.parse(data)
 
-  layers.sort((a: Layer, b: Layer) => a.order - b.order)
+  layers.sort((a: Layer, b: Layer) => a.index - b.index)
 
   if (layers.length == 0) return false
 
   for (const layer of layers) {
     if (layer.type == 'textbox') {
-      drawTextBox(layer.textbox!)
+      console.log('restore textbox', layer)
+      drawTextBox(layer.textbox!, layer.index)
     }
   }
 
@@ -209,10 +244,9 @@ export async function detectAndOcr() {
       x2: blk.box[2] / 1024,
       y2: blk.box[3] / 1024,
       text: blk.lines.join('\n'),
-      index: i + 1,
-      name: blk.lines.join(''),
+      order: i + 1,
       direction: blk.vertical,
-    })
+    }, i)
   }
 }
 

@@ -3,16 +3,15 @@ import { Object } from 'fabric'
 export interface Layer {
   id: number
   type: string
-  order: number
+  index: number // starts from 0
   name: string
   textbox?: TextBox
   object?: Object
 }
 
 export interface TextBox {
-  index: number
-  name: string
-  text: string
+  order: number // starts from 1
+  text: string // raw text from OCR
   translatedText?: string
   x1: number
   y1: number

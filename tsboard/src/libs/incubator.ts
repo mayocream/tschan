@@ -1,5 +1,6 @@
 import { cropImage } from './cropImage'
 import { resizeImageBlob } from './resizeImage'
+import { fetchWithTimeout } from '../helpers/request'
 
 // @ts-ignore
 const INCUBATOR_URL = window.INCUBATOR_URL ?? `http://localhost:43101`
@@ -24,7 +25,7 @@ export const inferenceComicTextDetectorPlusMangaOcr = async (image: Blob): Promi
   const form = new FormData()
   form.append('image', blob)
 
-  const response = await fetch(`${INCUBATOR_URL}/magic/comic-text-detector+manga-ocr`, {
+  const response = await fetchWithTimeout(`${INCUBATOR_URL}/magic/comic-text-detector+manga-ocr`, {
     method: 'POST',
     body: form,
   })
@@ -44,7 +45,7 @@ export const inferenceMangaOcr = async (image: Blob, bbox: number[]): Promise<st
   const form = new FormData()
   form.append('image', blob)
 
-  const response = await fetch(`${INCUBATOR_URL}/magic/manga-ocr`, {
+  const response = await fetchWithTimeout(`${INCUBATOR_URL}/magic/manga-ocr`, {
     method: 'POST',
     body: form,
   })
