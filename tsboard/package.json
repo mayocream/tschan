@@ -17,16 +17,16 @@
     "vue": "^3.3.4"
   },
   "devDependencies": {
-    "@types/wicg-file-system-access": "^2023.10.0",
-    "@vitejs/plugin-vue": "^4.2.3",
+    "@types/wicg-file-system-access": "^2023.10.1",
+    "@vitejs/plugin-vue": "^4.4.0",
     "autoprefixer": "^10.4.16",
-    "daisyui": "^3.8.1",
-    "postcss": "^8.4.30",
+    "daisyui": "^3.9.2",
+    "postcss": "^8.4.31",
     "tailwindcss": "^3.3.3",
     "typescript": "5.3.0-dev.20231006",
-    "vite": "^4.4.5",
+    "vite": "^4.4.11",
     "vite-plugin-static-copy": "^0.17.0",
     "vitest": "^0.34.6",
-    "vue-tsc": "^1.8.5"
+    "vue-tsc": "^1.8.18"
   }
 }
