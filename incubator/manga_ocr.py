@@ -6,8 +6,11 @@ import jaconv
 import torch
 from PIL import Image
 from transformers import AutoFeatureExtractor, AutoTokenizer, VisionEncoderDecoderModel
+from scipy.signal.windows import gaussian
+import numpy as np
 
 
+# TODO: support splitting text into multiple lines
 class MangaOcr:
     def __init__(self, pretrained_model_name_or_path='kha-white/manga-ocr-base', force_cpu=False):
         self.feature_extractor = AutoFeatureExtractor.from_pretrained(

@@ -15,7 +15,7 @@ mocr = MangaOcr()
 logger.info("loaded!")
 
 logger.info("Preloading comic text detector model...")
-ctd = ComicTextDetector(manga_ocr_model=mocr)
+ctd = ComicTextDetector()
 logger.info("loaded!")
 
 
@@ -37,7 +37,7 @@ def inference_manga_ocr():
     return jsonify(text)
 
 
-@app.route("/magic/comic-text-detector+manga-ocr", methods=['POST'])
+@app.route("/magic/comic-text-detector", methods=['POST'])
 def inference_comic_text_detector():
     if 'image' not in request.files:
         return jsonify({"error": "Image not provided"}), 400
