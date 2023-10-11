@@ -1,15 +1,12 @@
-import * as fabric from 'fabric'
-import { Circle, Group, Object, Rect, Text, Textbox } from 'fabric'
+import { Circle, Group, Object, Rect, Text } from 'fabric'
 import { useCanvas, useImages } from '../state'
 import type { Layer, TextBox } from '../tschan'
 import { uid } from '../libs/uid'
 import { inferenceYoloDetection } from '../libs/inferenceOnnx'
 import { orderTextBoxes } from '../libs/manga'
 import { readFileAsBlob, restoreCanvasData, storeCanvasData } from '../libs/storage'
-import { inferenceMangaOcrHuggingFace, inferenceComicTextDetectorPlusMangaOcr, isIncubatorAvailable } from '../libs/incubator'
+import { inferenceMangaOcr, inferenceComicTextDetector, isIncubatorAvailable } from '../libs/incubator'
 import events from '../events'
-
-const { makeBoundingBoxFromPoints } = fabric.util
 
 const canvasState = useCanvas()
 const imageState = useImages()
@@ -34,6 +31,8 @@ export function drawTextBox(box: TextBox, index: number) {
     cornerStrokeColor: 'rgba(0,0,0,0.5)',
     borderColor: 'rgba(0,0,0,0.5)',
     cornerSize: 8 * fontScaleRatio,
+    // TODO: support rotation, this requires store/restore rotation
+    lockRotation: true,
   })
 
   const circle = new Circle({
@@ -82,6 +81,14 @@ export function drawTextBox(box: TextBox, index: number) {
     scaling: () => {
       circle.set({ left: rect.left, top: rect.top })
       text.set({ left: rect.left, top: rect.top })
+      // FIXME: this is a hack to prevent scaling, result blur when scaling
+      // https://stackoverflow.com/questions/31885781/fabricjs-using-object-controls-on-canvas-to-resize-but-not-scale
+      rect.set({
+        width: rect.width * rect.scaleX,
+        height: rect.height * rect.scaleY,
+        scaleX: 1,
+        scaleY: 1,
+      })
     },
     rotating: () => {
       circle.set({ left: rect.left, top: rect.top })
@@ -103,28 +110,37 @@ export function drawTextBox(box: TextBox, index: number) {
 export function orderTextBoxesByIndex() {
   const canvas = canvasState.canvas.value!
   const objects = canvas.getObjects()
-
-  objects
-    .filter((obj) => obj.get('ts')?.type == 'textbox')
-    .sort((a, b) => a.get('ts')!.order - b.get('ts')!.order)
-    .forEach((obj, i) => {
-      const text = obj.item(2) as Text
-      text.set('text', String(i + 1))
-    })
+  const textBoxes = objects.filter((obj) => obj.get('ts')?.type == 'textbox')
+  for (const [i, textBox] of textBoxes.entries()) {
+    const layer = textBox.get('ts') as Layer
+    layer.index = i
+    layer.textbox!.order = i + 1
+    textBox.set('ts', layer)
+    const group = textBox as Group
+    const text = group.item(2) as Text
+    text.set({ text: String(layer.index + 1) })
+    text.dirty = true
+  }
+  canvas.renderAll()
 }
 
 export function moveTo(object: Object, index: number) {
-  if (!object.isType('group')) return
-  const group = object as Group
   const canvas = canvasState.canvas.value!
-
-  canvas.moveObjectTo(group, index)
-
-  const text = group.item(2) as Text
-  text.set('text', String(group.get('ts')?.order))
+  canvas.moveObjectTo(object, index)
+  console.log(canvas.getObjects())
+  orderTextBoxesByIndex()
+  canvas.renderAll()
 }
 
-export async function detectTextBoxes() {
+export function remove(object: Object) {
+  const canvas = canvasState.canvas.value!
+  canvas.remove(object)
+  orderTextBoxesByIndex()
+  canvas.renderAll()
+}
+
+export async function detectTextBoxesYolo() {
+  console.log('detectTextBoxesYolo')
   const blob = await readFileAsBlob(imageState.currentImage.value!)
   const boxes = await inferenceYoloDetection(blob)
   const orderedBoxes = orderTextBoxes(
@@ -132,16 +148,18 @@ export async function detectTextBoxes() {
     boxes.filter((box) => box[4] == 'text')
   )
   for (const [i, box] of orderedBoxes.entries()) {
-    drawTextBox({
-      x1: box[0],
-      y1: box[1],
-      x2: box[2],
-      y2: box[3],
-      text: '',
-      order: i + 1, // index starts from 1
-      name: `Text...`,
-      direction: 'vertical',
-    }, i)
+    drawTextBox(
+      {
+        x1: box[0],
+        y1: box[1],
+        x2: box[2],
+        y2: box[3],
+        text: '',
+        order: i + 1, // index starts from 1
+        direction: 'vertical',
+      },
+      i
+    )
   }
 }
 
@@ -211,50 +229,76 @@ export async function restoreCanvas() {
 
 export async function ocr() {
   const image = imageState.currentImage.value!
-  canvasState.canvas
-    .value!.getObjects()
-    .filter((obj) => obj.get('ts')?.type == 'textbox')
-    .map((obj) => {
-      const rect = (obj as Group).item(0) as Rect
-      const rectBbox = rect.getBoundingRect(true)
-      const bbox = [rectBbox.left, rectBbox.top, rectBbox.width, rectBbox.height]
-      inferenceMangaOcrHuggingFace(image, bbox).then((text) => {
-        const ts = obj.get('ts')
-        ts.name = text
-        ts.ocr_text = text
-        obj.set('ts', ts)
-        events.emit('canvas:ocr')
-      })
+  const blob = await readFileAsBlob(image)
+  const objects = canvasState.canvas.value!.getObjects().filter((obj) => obj.get('ts')?.type == 'textbox')
+
+  const promises = []
+
+  for (const obj of objects) {
+    const layer = obj.get('ts') as Layer
+    const bbox = extractBBox(obj)
+
+    const promise = inferenceMangaOcr(blob, [bbox.left, bbox.top, bbox.width, bbox.height]).then((text) => {
+      layer.textbox!.text = text
+      layer.name = text
+      obj.set('ts', layer)
+      events.emit('canvas:ocr')
     })
+
+    promises.push(promise)
+  }
+
+  await Promise.all(promises)
+  await storeCanvas()
 }
 
-export async function detectAndOcr() {
+export async function detectTextBoxes() {
   const currentImage = imageState.currentImage.value!
   const blob = await readFileAsBlob(currentImage)
-  const { blks } = await inferenceComicTextDetectorPlusMangaOcr(blob)
+  const { blks } = await inferenceComicTextDetector(blob)
   if (blks['blocks'].length == 0) return
 
   // if the current image is not the same as the image when the request was sent, ignore the result
   if (currentImage.name != imageState.currentImage.value!.name) return
 
+  const canvas = canvasState.canvas.value!
+
   for (const [i, blk] of blks['blocks'].entries()) {
-    drawTextBox({
-      x1: blk.box[0] / 1024,
-      y1: blk.box[1] / 1024,
-      x2: blk.box[2] / 1024,
-      y2: blk.box[3] / 1024,
-      text: blk.lines.join('\n'),
-      order: i + 1,
-      direction: blk.vertical,
-    }, i)
+    drawTextBox(
+      {
+        x1: blk.box[0] / canvas.width,
+        y1: blk.box[1] / canvas.height,
+        x2: blk.box[2] / canvas.width,
+        y2: blk.box[3] / canvas.height,
+        order: i + 1,
+        direction: blk.vertical,
+      },
+      i
+    )
   }
+
+  await storeCanvas()
 }
 
 export async function initialDetectAndOcr() {
+  console.log('initialDetectAndOcr')
   if (await isIncubatorAvailable) {
-    await detectAndOcr()
-  } else {
     await detectTextBoxes()
     await ocr()
+  } else {
+    await detectTextBoxesYolo()
   }
+  await storeCanvas()
+  canvasState.canvas.value!.renderAll()
+}
+
+const extractBBox = (obj: Object) => {
+  const rect = (obj as Group).item(0) as Rect
+  const bbox = {
+    left: rect.left + rect.group!.left + rect.group!.width / 2,
+    top: rect.top + rect.group!.top + rect.group!.height / 2,
+    width: rect.width,
+    height: rect.height,
+  }
+  return bbox
 }

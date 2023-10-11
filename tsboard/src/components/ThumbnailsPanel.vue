@@ -44,7 +44,7 @@ onMounted(async () => {
 
 <template>
   <aside class="min-w-[6rem] w-[13rem] overflow-auto h-full">
-    <div class="flex flex-row flex-wrap justify-stretch my-2 gap-y-2">
+    <div class="flex flex-row flex-wrap justify-stretch my-2 gap-y-2 select-none">
       <figure
         v-for="image in imagesStore.images.list"
         @click="setCurrentImage(image)"
@@ -53,7 +53,7 @@ onMounted(async () => {
         class="w-24 h-34 m-auto opacity-70 hover:opacity-100 relative box-border data-[active=true]:opacity-100 data-[active=true]:border-2 data-[active=true]:border-blue-500"
       >
         <img draggable="false" :src="emptyImage" :alt="image.name" :data-name="image.name" class="w-24 h-32 object-scale-down lazy" />
-        <figcaption class="text-[.8rem] truncate select-none text-center text-sm absolute bottom-0 w-full bg-[rgba(0,0,0,0.7)] text-white">
+        <figcaption class="text-[.8rem] truncate text-center text-sm absolute bottom-0 w-full bg-[rgba(0,0,0,0.7)] text-white">
           {{ image.name }}
         </figcaption>
       </figure>

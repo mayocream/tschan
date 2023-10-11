@@ -8,7 +8,7 @@ const INCUBATOR_URL = window.INCUBATOR_URL ?? `http://localhost:43101`
 // try if incubator is running
 const incubatorRunning = async (): Promise<boolean> => {
   try {
-    const response = await fetch(`${INCUBATOR_URL}`)
+    const response = await fetchWithTimeout(`${INCUBATOR_URL}`, {}, 1000)
     return response.status == 200
   } catch (e) {
     return false
@@ -17,15 +17,15 @@ const incubatorRunning = async (): Promise<boolean> => {
 
 export const isIncubatorAvailable = incubatorRunning()
 
-export const inferenceComicTextDetectorPlusMangaOcr = async (image: Blob): Promise<any> => {
-  const blob = await resizeImageBlob(image, 1024, 1024)
+export const inferenceComicTextDetector = async (image: Blob): Promise<any> => {
+  // skip resizing
   const startTime = Date.now()
 
   // form format removed OPTIONS requests (CORS)
   const form = new FormData()
-  form.append('image', blob)
+  form.append('image', image)
 
-  const response = await fetchWithTimeout(`${INCUBATOR_URL}/magic/comic-text-detector+manga-ocr`, {
+  const response = await fetchWithTimeout(`${INCUBATOR_URL}/magic/comic-text-detector`, {
     method: 'POST',
     body: form,
   })

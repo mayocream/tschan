@@ -16,7 +16,7 @@ const openProject = async () => {
 </script>
 
 <template>
-  <div class="flex bg-gray-800 h-screen w-screen">
+  <div class="flex bg-base-300 h-screen w-screen text-neutral-focus">
     <div class="flex flex-col justify-center m-auto w-[300px]">
       <div class="madoka-runes text-[5rem] text-center">tschan</div>
       <button class="btn" @click="openProject">Open Project</button>

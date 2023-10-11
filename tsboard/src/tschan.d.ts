@@ -11,7 +11,7 @@ export interface Layer {
 
 export interface TextBox {
   order: number // starts from 1
-  text: string // raw text from OCR
+  text?: string // raw text from OCR
   translatedText?: string
   x1: number
   y1: number

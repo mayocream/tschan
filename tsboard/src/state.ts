@@ -1,7 +1,7 @@
-import { shallowRef, reactive, computed } from 'vue'
+import { shallowRef, shallowReactive, computed } from 'vue'
 import { Canvas, Object } from 'fabric'
 
-const images = reactive({
+const images = shallowReactive({
   current: undefined as File | undefined,
   list: [] as File[],
 })

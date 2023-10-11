@@ -123,14 +123,14 @@ onMounted(async () => {
   <div class="flex sticky bottom-0 w-full bg-base-200 h-[1.2rem] leading-[1.2rem] opacity-70">
     <input
       ref="zoomInputRef"
-      class="w-[75px] text-[12px] text-center focus:outline-none bg-base-300 opacity-100 text-white"
+      class="w-[75px] text-[12px] text-center focus:outline-none bg-base-300 opacity-100 text-neutral"
       type="text"
       :value="zoomIndicator"
       @blur="setZoomAndTransform(($event.target as HTMLInputElement).value)"
       @keydown.enter=";($event.target as HTMLInputElement).blur()"
     />
     <!-- @vue-skip -->
-    <span class="text-[12px] px-5 bg-black">{{ `${image.width} px x ${image.height} px (${window.devicePixelRatio} dppx)` }}</span>
+    <span class="text-[12px] px-5 bg-base-300 text-neutral">{{ `${image.width} px x ${image.height} px (${window.devicePixelRatio} dppx)` }}</span>
   </div>
 </template>
 

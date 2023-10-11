@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import events from '../events'
-import { ocr } from '../helpers/canvas'
+import { ocr, detectTextBoxes, storeCanvas } from '../helpers/canvas'
 import { getImageList, openLocalFolder } from '../libs/storage'
 import { useImages } from '../state'
 import { isIncubatorAvailable } from '../libs/incubator'
@@ -26,8 +26,13 @@ const ocrHandler = async () => {
   blur()
 }
 
-const detectAndOcr = async () => {
-  events.emit('canvas:initialDetectAndOcr')
+const detectHandler = async () => {
+  await detectTextBoxes()
+  blur()
+}
+
+const saveHandler = async () => {
+  await storeCanvas()
   blur()
 }
 
@@ -40,25 +45,25 @@ onMounted(async () => {
   <!-- bugy CSS but it works -->
   <div class="flex flex-row h-[34px]">
     <div class="dropdown">
-      <label tabindex="0" class="rounded-none h-[34px] leading-[40px] font-normal text-[1rem] btn btn-sm text-slate-100 capitalize"
+      <label tabindex="0" class="rounded-none h-[34px] leading-[40px] font-normal text-[1rem] btn btn-sm text-neutral capitalize"
         >File</label
       >
-      <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 w-52">
+      <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-300 w-52 text-neutral">
         <!-- <li><a>Open File...</a></li> -->
         <li><a @click="openProject">Open Project...</a></li>
         <div class="divider my-0"></div>
         <li>
-          <a>Save<span class="ml-auto">Ctrl + S</span></a>
+          <a @click="saveHandler">Save<span class="ml-auto">Ctrl + S</span></a>
         </li>
         <li><a>Save As...</a></li>
       </ul>
     </div>
     <div class="dropdown">
-      <label tabindex="0" class="rounded-none h-[34px] leading-[40px] font-normal text-[1rem] btn btn-sm text-slate-100 capitalize madoka-runes"
+      <label tabindex="0" class="rounded-none h-[34px] leading-[40px] font-normal text-[1rem] btn btn-sm text-neutral capitalize madoka-runes"
         >MAGIC</label
       >
-      <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 w-52">
-        <li><a @click="detectAndOcr">Detect Text & OCR</a></li>
+      <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-300 w-52 text-neutral">
+        <li><a @click="detectHandler">Detect Textbox</a></li>
         <li><a @click="ocrHandler">OCR</a></li>
         <div class="divider my-0"></div>
         <li><a>Translate</a></li>
