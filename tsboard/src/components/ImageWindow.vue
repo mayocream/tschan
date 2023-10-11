@@ -63,6 +63,8 @@ const initCanvas = async (imageFile: File) => {
       fireRightClick: true,
       stopContextMenu: true,
       controlsAboveOverlay: true,
+      // When true, objects can be transformed by one side (unproportionately)
+      uniformScaling: false,
     })
 
   // mount global canvas instance

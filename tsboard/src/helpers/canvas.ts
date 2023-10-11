@@ -212,7 +212,7 @@ export async function storeCanvas() {
   const data = JSON.stringify(layers)
   await storeCanvasData(imageState.currentImage.value!.name, data)
 
-  console.log('store canvas data', layers)
+  // console.log('store canvas data', layers)
 }
 
 export async function restoreCanvas() {
@@ -229,12 +229,12 @@ export async function restoreCanvas() {
 
   for (const layer of layers) {
     if (layer.type == 'textbox') {
-      console.log('restore textbox', layer)
+      // console.log('restore textbox', layer)
       drawTextBox(layer.textbox!, layer.index)
     }
   }
 
-  console.log('restore canvas data')
+  console.log('restore canvas data', layers)
   return true
 }
 
