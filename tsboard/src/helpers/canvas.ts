@@ -33,6 +33,7 @@ export function drawTextBox(box: TextBox, index: number) {
     cornerSize: 8 * fontScaleRatio,
     // TODO: support rotation, this requires store/restore rotation
     lockRotation: true,
+    objectCaching: false,
   })
 
   const circle = new Circle({
@@ -43,9 +44,11 @@ export function drawTextBox(box: TextBox, index: number) {
     originX: 'center',
     originY: 'center',
     opacity: 0.7,
+    interactive: false,
+    selectable: false,
   })
 
-  const text = new Text(String(box.order), {
+  const indicator = new Text(String(box.order), {
     fontSize: 16 * fontScaleRatio,
     fontFamily: 'system-ui, sans-serif',
     fontWeight: 'bold',
@@ -55,14 +58,19 @@ export function drawTextBox(box: TextBox, index: number) {
     originX: 'center',
     originY: 'center',
     textAlign: 'center',
+    interactive: false,
+    selectable: false,
   })
 
-  const group = new Group([rect, circle, text], {
+  const group = new Group([rect, circle, indicator], {
     // allow to select rect
     subTargetCheck: true,
     // disable caching for this group
     objectCaching: false,
-    interactive: false,
+    // Used to allow targeting of object inside groups.
+    // set to true if you want to select an object inside a group.\
+    // **REQUIRES** `subTargetCheck` set to true
+    interactive: true,
     hasBorders: false,
     hasControls: false,
     activeOn: 'down',
@@ -80,8 +88,7 @@ export function drawTextBox(box: TextBox, index: number) {
   rect.on({
     scaling: () => {
       circle.set({ left: rect.left, top: rect.top })
-      text.set({ left: rect.left, top: rect.top })
-      // FIXME: this is a hack to prevent scaling, result blur when scaling
+      indicator.set({ left: rect.left, top: rect.top })
       // https://stackoverflow.com/questions/31885781/fabricjs-using-object-controls-on-canvas-to-resize-but-not-scale
       rect.set({
         width: rect.width * rect.scaleX,
@@ -92,7 +99,11 @@ export function drawTextBox(box: TextBox, index: number) {
     },
     rotating: () => {
       circle.set({ left: rect.left, top: rect.top })
-      text.set({ left: rect.left, top: rect.top })
+      indicator.set({ left: rect.left, top: rect.top })
+    },
+    moving: () => {
+      circle.set({ left: rect.left, top: rect.top })
+      indicator.set({ left: rect.left, top: rect.top })
     },
   })
 
