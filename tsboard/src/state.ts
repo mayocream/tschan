@@ -1,4 +1,4 @@
-import { shallowRef, shallowReactive, computed } from 'vue'
+import { shallowRef, shallowReactive, computed, ref } from 'vue'
 import { Canvas, Object } from 'fabric'
 
 const images = shallowReactive({
@@ -22,4 +22,10 @@ export const useCanvas = () => {
   const objects = computed(() => canvas.value?._objects as Object[])
 
   return { canvas, objects }
+}
+
+// TODO: change cursor based on tool
+const tool = ref('selector')
+export const useTool = () => {
+  return { tool }
 }

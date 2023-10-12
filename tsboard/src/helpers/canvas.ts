@@ -77,12 +77,12 @@ export function drawTextBox(box: TextBox, index: number) {
   })
 
   group.on({
-    mouseup: () => {
+    selected: () => {
       // set rect as active object
       canvas.setActiveObject(rect)
       // draw controls on active object
       canvas.drawControls(canvas.getContext())
-    },
+    }
   })
 
   rect.on({
@@ -294,6 +294,7 @@ export async function detectTextBoxes() {
 export async function initialDetectAndOcr() {
   console.log('initialDetectAndOcr')
   if (await isIncubatorAvailable) {
+    console.log('use incubator')
     await detectTextBoxes()
     await ocr()
   } else {

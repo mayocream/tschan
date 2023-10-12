@@ -59,8 +59,8 @@ onMounted(async () => {
       </ul>
     </div>
     <div class="dropdown">
-      <label tabindex="0" class="rounded-none h-[34px] leading-[40px] font-normal text-[1rem] btn btn-sm text-neutral capitalize madoka-runes"
-        >MAGIC</label
+      <label tabindex="0" class="rounded-none h-[34px] leading-[40px] font-normal text-[1rem] btn btn-sm text-neutral capitalize"
+        >AI (Magic)</label
       >
       <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-300 w-52 text-neutral">
         <li><a @click="detectHandler">Detect Textbox</a></li>
@@ -74,7 +74,8 @@ onMounted(async () => {
     </div>
     <div class="ml-auto mr-3">
       <div v-if="isIncubator" class="mt-1 hover:cursor-pointer">
-        <img class="h-[34px] w-[34px] object-cover rounded-full border hover:border-sky-100" src="/KyubeyMadokaMagica.png" />
+        <div class="text-neutral-focus italic text-sm">Incubator Mode</div>
+        <!-- <img class="h-[34px] w-[34px] object-cover rounded-full border hover:border-sky-100" src="/KyubeyMadokaMagica.png" /> -->
       </div>
     </div>
   </div>
