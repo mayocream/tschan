@@ -213,7 +213,8 @@ export async function storeCanvas(saveToFile = false) {
   await storeCanvasData(imageState.currentImage.value!.name, data)
 
   if (saveToFile) {
-    await writeToFile(`${imageState.currentImage.value!.name}.ts`, data)
+    const dirHandle = imageState.images.dirHandle!
+    await writeToFile(dirHandle, `${imageState.currentImage.value!.name}.ts`, data)
   }
 }
 

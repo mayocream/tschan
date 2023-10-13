@@ -6,10 +6,11 @@ import { useImages } from '../state'
 const imagesState = useImages()
 
 const openProject = async () => {
-  await openLocalFolder()
+  const dirHandle = await openLocalFolder()
 
   imagesState.images.list = (await getImageList()) || []
   imagesState.images.current = imagesState.images.list[0]
+  imagesState.images.dirHandle = dirHandle
 
   events.emit('project:open')
 }

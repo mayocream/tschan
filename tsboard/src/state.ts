@@ -4,6 +4,7 @@ import { Canvas, Object } from 'fabric'
 const images = shallowReactive({
   current: undefined as File | undefined,
   list: [] as File[],
+  dirHandle: undefined as FileSystemDirectoryHandle | undefined,
 })
 
 export const useImages = () => {

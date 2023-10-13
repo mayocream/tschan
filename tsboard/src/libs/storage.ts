@@ -43,6 +43,10 @@ export async function openLocalFolder() {
   return dirHandle
 }
 
+export async function getDirHandleFromIndexedDB() {
+  return await get<FileSystemDirectoryHandle>('dir_handle')
+}
+
 export async function getFilesFromDirHandle(dirHandle: FileSystemDirectoryHandle): Promise<File[]> {
   const promises = []
   for await (const entry of dirHandle.values()) {
@@ -114,8 +118,7 @@ async function verifyPermission(fileHandle: FileSystemHandle, withWrite = true) 
   return false
 }
 
-export async function writeToFile(filename: string, data: string) {
-  const dirHandle = await get<FileSystemDirectoryHandle>('dir_handle')
+export async function writeToFile(dirHandle: FileSystemDirectoryHandle, filename: string, data: string) {
   if (!dirHandle) return
 
   if (!(await verifyPermission(dirHandle))) {
@@ -132,4 +135,4 @@ export async function writeToFile(filename: string, data: string) {
 }
 
 // testing
-(<any>window).writeToFile = writeToFile
+;(<any>window).writeToFile = writeToFile

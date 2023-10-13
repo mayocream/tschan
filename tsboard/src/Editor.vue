@@ -5,7 +5,7 @@ import ThumbnailsPanel from './components/ThumbnailsPanel.vue'
 import TopMenu from './components/TopMenu.vue'
 import { useImages } from './state'
 import ProjectManagement from './components/ProjectManagement.vue'
-import { getCurrentImage, getImageList } from './libs/storage'
+import { getCurrentImage, getImageList, getDirHandleFromIndexedDB } from './libs/storage'
 import { onBeforeMount } from 'vue'
 import { currentRequest } from './helpers/request'
 import TranslatePanel from './components/TranslatePanel.vue'
@@ -16,6 +16,7 @@ const imagesState = useImages()
 onBeforeMount(async () => {
   imagesState.images.list = (await getImageList()) || []
   imagesState.images.current = (await getCurrentImage()) || imagesState.images.list[0]
+  imagesState.images.dirHandle = await getDirHandleFromIndexedDB()
 })
 </script>
 
