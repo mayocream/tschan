@@ -32,7 +32,7 @@ const detectHandler = async () => {
 }
 
 const saveHandler = async () => {
-  await storeCanvas()
+  await storeCanvas(true)
   blur()
 }
 

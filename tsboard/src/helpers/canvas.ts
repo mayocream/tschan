@@ -4,7 +4,7 @@ import type { Layer, TextBox } from '../tschan'
 import { uid } from '../libs/uid'
 import { inferenceYoloDetection } from '../libs/inferenceOnnx'
 import { orderTextBoxes } from '../libs/manga'
-import { readFileAsBlob, restoreCanvasData, storeCanvasData } from '../libs/storage'
+import { readFileAsBlob, restoreCanvasData, storeCanvasData, writeToFile } from '../libs/storage'
 import { inferenceMangaOcr, inferenceComicTextDetector, isIncubatorAvailable } from '../libs/incubator'
 import events from '../events'
 
@@ -174,7 +174,7 @@ export async function detectTextBoxesYolo() {
   }
 }
 
-export async function storeCanvas() {
+export async function storeCanvas(saveToFile = false) {
   const canvas = canvasState.canvas.value!
   const objects = canvas.getObjects()
   const layers: Layer[] = []
@@ -212,7 +212,9 @@ export async function storeCanvas() {
   const data = JSON.stringify(layers)
   await storeCanvasData(imageState.currentImage.value!.name, data)
 
-  // console.log('store canvas data', layers)
+  if (saveToFile) {
+    await writeToFile(`${imageState.currentImage.value!.name}.ts`, data)
+  }
 }
 
 export async function restoreCanvas() {

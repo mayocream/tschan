@@ -33,11 +33,12 @@ async function decompressJSON(compressedData: string, type = 'application/octet-
 
 // TODO: support single file
 
-// Note: dir handle can't be serialized
 export async function openLocalFolder() {
   const dirHandle = await showDirectoryPicker({ mode: 'readwrite' })
   const files = await getFilesFromDirHandle(dirHandle)
   console.log('open folder', files)
+
+  await set('dir_handle', dirHandle)
 
   return dirHandle
 }
@@ -86,9 +87,49 @@ export async function readFileAsBlob(file: File): Promise<Blob> {
 
 // canvas should be serialized before storing
 export async function storeCanvasData(name: string, data: string) {
-	await set(`canvas:${name}`, data)
+  await set(`canvas:${name}`, data)
 }
 
 export async function restoreCanvasData(name: string) {
-	return await get<string>(`canvas:${name}`)
+  return await get<string>(`canvas:${name}`)
 }
+
+async function verifyPermission(fileHandle: FileSystemHandle, withWrite = true) {
+  const opts: FileSystemHandlePermissionDescriptor = {}
+  if (withWrite) {
+    opts.mode = 'readwrite'
+  }
+
+  // Check if we already have permission, if so, return true.
+  if ((await fileHandle.queryPermission(opts)) === 'granted') {
+    return true
+  }
+
+  // Request permission to the file, if the user grants permission, return true.
+  if ((await fileHandle.requestPermission(opts)) === 'granted') {
+    return true
+  }
+
+  // The user did not grant permission, return false.
+  return false
+}
+
+export async function writeToFile(filename: string, data: string) {
+  const dirHandle = await get<FileSystemDirectoryHandle>('dir_handle')
+  if (!dirHandle) return
+
+  if (!(await verifyPermission(dirHandle))) {
+    console.error('Permission denied')
+    return
+  }
+
+  const fileHandle = await dirHandle.getFileHandle(filename, { create: true })
+  const writable = await fileHandle.createWritable()
+  await writable.write(data)
+  await writable.close()
+
+  console.log('write to file', filename)
+}
+
+// testing
+(<any>window).writeToFile = writeToFile
