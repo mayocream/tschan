@@ -62,6 +62,7 @@ onMounted(() => {
 
 <template>
   <!-- TODO: drag to sort layers? -->
+  <!-- TODO: select multiple layers using shift key -->
   <div class="flex-1 h-[50%] overflow-auto mb-[1.25rem] border-t-[.6px] border-base-content">
     <div class="flex flex-col last:border-b-[0.4px] border-slate-500 text-neutral-focus">
       <div

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import events from '../events'
 import { Canvas, Image } from 'fabric'
 import { useImages, useCanvas, useTool } from '../state'
-import events from '../events'
 import { storeCanvas, restoreCanvas, initialDetectAndOcr, drawTextBox } from '../helpers/canvas'
 import { readFileAsBlob } from '../libs/storage'
 import { debounce } from '../libs/util'
-import { Layer } from '../tschan'
+import type { Layer } from '../tschan'
 
 const imagesStore = useImages()
 const currentImage = imagesStore.currentImage
@@ -33,6 +33,7 @@ const selection = reactive({
 })
 const toolState = useTool()
 
+// TODO: store zoom in indexedDB
 const zoomAspectRatio = (imageWidth: number, imageHeight: number, zoomFactor?: number): [number, number, number] => {
   const screenWidth = canvasWindow.value!.clientWidth
   const screenHeight = canvasWindow.value!.clientHeight
@@ -49,6 +50,7 @@ const setZoomAndTransform = (value?: string | number) => {
   zoom.value = zoomFactor
 }
 
+// zoom using mouse wheel + ctrl or touchpad pinch
 const handlePanZoom = (e: WheelEvent) => {
   if (!e.ctrlKey) return
   e.preventDefault()
@@ -131,6 +133,7 @@ const initCanvas = async (imageFile: File) => {
 
   setZoomAndTransform()
 
+  // actions for the first time
   if (!(await restoreCanvas())) {
     await initialDetectAndOcr()
   }

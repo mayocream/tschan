@@ -18,6 +18,7 @@ const lazyLoadImages = async () => {
       if (entry.isIntersecting) {
         const element = entry.target as HTMLImageElement
         const image = imagesStore.images.list.find((image) => image.name == element.dataset.name)!
+        // by default @2x is rendered
         const blob = await resizeImage(await readFileAsBlob(image), 96, 128)
         element.src = URL.createObjectURL(blob)
         element.classList.remove('lazy')
@@ -33,6 +34,7 @@ const lazyLoadImages = async () => {
 
 const setCurrentImage = async (image: File) => {
   imagesStore.images.current = image
+  // store current image to indexedDB
   await setCurrentFile(image)
 }
 

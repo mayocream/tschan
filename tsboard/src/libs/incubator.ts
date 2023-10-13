@@ -1,5 +1,4 @@
 import { cropImage } from './cropImage'
-import { resizeImageBlob } from './resizeImage'
 import { fetchWithTimeout } from '../helpers/request'
 
 // @ts-ignore

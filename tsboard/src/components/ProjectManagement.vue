@@ -5,6 +5,8 @@ import { useImages } from '../state'
 
 const imagesState = useImages()
 
+// open new project from local folder
+// TODO: restore state from local `.ts` files
 const openProject = async () => {
   const dirHandle = await openLocalFolder()
 

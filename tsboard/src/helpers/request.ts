@@ -1,22 +1,21 @@
-import { ref } from 'vue'
+import { shallowRef } from 'vue'
 
 export interface PromiseWithTime<T> extends Promise<T> {
   startTime: number
 }
 
-export const currentRequest = ref<PromiseWithTime<Response> | null>(null)
+export const requestQueue = shallowRef<PromiseWithTime<Response>[]>([])
 
 export async function fetchWithTimeout(url: string, options?: RequestInit | undefined, timeout = 10000) {
   const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), timeout)
+  setTimeout(() => controller.abort(), timeout)
   const request: PromiseWithTime<Response> = fetch(url, {
     ...options,
     signal: controller.signal,
   }) as PromiseWithTime<Response>
   request.startTime = Date.now()
-  currentRequest.value = request
+  requestQueue.value.push(request)
   return request.finally(() => {
-    clearTimeout(id)
-    currentRequest.value = null
+    requestQueue.value = requestQueue.value.filter((r) => r !== request)
   })
 }

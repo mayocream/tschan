@@ -179,7 +179,10 @@ export async function storeCanvas(saveToFile = false) {
   const objects = canvas.getObjects()
   const layers: Layer[] = []
   for (const object of objects) {
-    const layer = object.get('ts') as Layer
+    let layer = object.get('ts') as Layer
+    // deep copy
+    layer = structuredClone(layer)
+    layer.object = undefined
     if (layer.type == 'textbox') {
       const group = object as Group
       const rect = group.item(0) as Rect
